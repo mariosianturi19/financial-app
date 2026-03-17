@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Database\Seeders\DefaultCategoriesSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +24,9 @@ class AuthController extends Controller
             'email'    => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        // ── Otomatis seed kategori default untuk user baru ──
+        DefaultCategoriesSeeder::seedForUser($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

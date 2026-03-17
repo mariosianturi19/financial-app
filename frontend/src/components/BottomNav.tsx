@@ -2,21 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ArrowLeftRight, Wallet, Target, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Target, MoreHorizontal, X } from 'lucide-react';
 import { useState } from 'react';
 
 const mainItems = [
-  { href: '/dashboard',    label: 'Home',      Icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transaksi', Icon: ArrowLeftRight  },
-  { href: '/wallets',      label: 'Dompet',    Icon: Wallet          },
-  { href: '/budgets',      label: 'Anggaran',  Icon: Target          },
+  { href: '/dashboard',    label: 'Home',         Icon: LayoutDashboard },
+  { href: '/transactions', label: 'Transactions', Icon: ArrowLeftRight  },
+  { href: '/wallets',      label: 'Wallets',      Icon: Wallet          },
+  { href: '/budgets',      label: 'Budgets',      Icon: Target          },
 ];
 
 const moreItems = [
-  { href: '/categories', label: 'Kategori',  emoji: '🏷️' },
-  { href: '/analytics',  label: 'Analytics', emoji: '📈' },
-  { href: '/forecast',   label: 'Forecast',  emoji: '🔮' },
-  { href: '/insights',   label: 'Insights',  emoji: '💡' },
+  { href: '/categories', label: 'Categories', emoji: '🏷️' },
+  { href: '/analytics',  label: 'Analytics',  emoji: '📈' },
+  { href: '/forecast',   label: 'Forecast',   emoji: '🔮' },
+  { href: '/insights',   label: 'Insights',   emoji: '💡' },
 ];
 
 export default function BottomNav() {
@@ -28,6 +28,55 @@ export default function BottomNav() {
 
   return (
     <>
+      {/* More drawer */}
+      {showMore && (
+        <>
+          <div
+            onClick={() => setShowMore(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 48,
+              background: 'rgba(4,4,10,0.6)',
+              backdropFilter: 'blur(4px)',
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            bottom: 'var(--bottom-nav-height)',
+            left: 0, right: 0,
+            zIndex: 49,
+            background: 'rgba(14,14,23,0.98)',
+            borderTop: '1px solid var(--border-default)',
+            padding: '16px 20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 12,
+            backdropFilter: 'blur(20px)',
+          }}>
+            {moreItems.map(({ href, label, emoji }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href} href={href}
+                  onClick={() => setShowMore(false)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    padding: '12px 8px', borderRadius: 14, textDecoration: 'none',
+                    background: active ? 'var(--accent-violet-dim)' : 'var(--bg-overlay)',
+                    border: `1px solid ${active ? 'rgba(124,111,247,0.3)' : 'var(--border-subtle)'}`,
+                  }}
+                >
+                  <span style={{ fontSize: 22 }}>{emoji}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: active ? 'var(--accent-violet)' : 'var(--text-tertiary)' }}>
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Main nav bar */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'rgba(17,17,24,0.92)',
@@ -54,17 +103,13 @@ export default function BottomNav() {
                   }} />
                 )}
                 <Icon
-                  size={20}
-                  strokeWidth={active ? 2.2 : 1.8}
-                  style={{
-                    color: active ? 'var(--accent-violet)' : 'var(--text-tertiary)',
-                    position: 'relative', zIndex: 1,
-                  }}
+                  size={20} strokeWidth={active ? 2.2 : 1.8}
+                  style={{ color: active ? 'var(--accent-violet)' : 'var(--text-tertiary)', position: 'relative', zIndex: 1 }}
                 />
                 <span style={{
                   fontSize: 10, fontWeight: active ? 600 : 400,
                   color: active ? 'var(--accent-violet)' : 'var(--text-tertiary)',
-                  letterSpacing: '0.02em', position: 'relative', zIndex: 1,
+                  position: 'relative', zIndex: 1,
                 }}>
                   {label}
                 </span>
@@ -74,102 +119,35 @@ export default function BottomNav() {
 
           {/* More button */}
           <button
-            onClick={() => setShowMore(true)}
+            onClick={() => setShowMore(!showMore)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: 4,
-              background: 'none', border: 'none', cursor: 'pointer', position: 'relative',
+              background: 'none', border: 'none', cursor: 'pointer',
+              position: 'relative',
             }}
           >
-            {isMoreActive && (
+            {isMoreActive && !showMore && (
               <div style={{
                 position: 'absolute', top: 8,
                 width: 32, height: 32,
                 background: 'var(--accent-violet-dim)', borderRadius: 10,
               }} />
             )}
-            <MoreHorizontal
-              size={20}
-              strokeWidth={1.8}
-              style={{
-                color: isMoreActive ? 'var(--accent-violet)' : 'var(--text-tertiary)',
-                position: 'relative', zIndex: 1,
-              }}
-            />
+            {showMore
+              ? <X size={20} style={{ color: 'var(--accent-violet)', position: 'relative', zIndex: 1 }} />
+              : <MoreHorizontal size={20} strokeWidth={1.8} style={{ color: isMoreActive ? 'var(--accent-violet)' : 'var(--text-tertiary)', position: 'relative', zIndex: 1 }} />
+            }
             <span style={{
-              fontSize: 10, fontWeight: isMoreActive ? 600 : 400,
-              color: isMoreActive ? 'var(--accent-violet)' : 'var(--text-tertiary)',
+              fontSize: 10, fontWeight: (isMoreActive || showMore) ? 600 : 400,
+              color: (isMoreActive || showMore) ? 'var(--accent-violet)' : 'var(--text-tertiary)',
+              position: 'relative', zIndex: 1,
             }}>
-              Lainnya
+              More
             </span>
           </button>
         </div>
       </nav>
-
-      {/* More Drawer */}
-      {showMore && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 60,
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-          }}
-          onClick={() => setShowMore(false)}
-        >
-          <div
-            className="animate-scalein"
-            style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: 'var(--bg-elevated)',
-              borderRadius: '24px 24px 0 0',
-              border: '1px solid var(--border-subtle)',
-              padding: '16px 24px 32px',
-              paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{
-              width: 40, height: 4,
-              background: 'var(--border-strong)',
-              borderRadius: 99, margin: '0 auto 20px',
-            }} />
-            <p style={{
-              fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
-              textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16,
-            }}>
-              Menu Lainnya
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-              {moreItems.map(({ href, label, emoji }) => {
-                const active = isActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setShowMore(false)}
-                    style={{
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', gap: 8, padding: '14px 8px',
-                      borderRadius: 14, textDecoration: 'none',
-                      background: active ? 'var(--accent-violet-dim)' : 'var(--bg-overlay)',
-                      border: `1px solid ${active ? 'var(--accent-violet)' : 'var(--border-subtle)'}`,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <span style={{ fontSize: 22 }}>{emoji}</span>
-                    <span style={{
-                      fontSize: 10, fontWeight: 500,
-                      color: active ? 'var(--accent-violet)' : 'var(--text-secondary)',
-                      textAlign: 'center', lineHeight: 1.3,
-                    }}>
-                      {label}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

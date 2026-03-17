@@ -7,6 +7,7 @@ interface AppState {
   wallets: Wallet[];
   walletsLoaded: boolean;
   fetchWallets: () => Promise<void>;
+  refetchWallets: () => Promise<void>;
   setWallets: (wallets: Wallet[]) => void;
   updateWalletInStore: (wallet: Wallet) => void;
   removeWalletFromStore: (id: number) => void;
@@ -15,6 +16,7 @@ interface AppState {
   categories: Category[];
   categoriesLoaded: boolean;
   fetchCategories: () => Promise<void>;
+  refetchCategories: () => Promise<void>;
   setCategories: (categories: Category[]) => void;
   updateCategoryInStore: (category: Category) => void;
   removeCategoryFromStore: (id: number) => void;
@@ -28,6 +30,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   wallets: [],
   walletsLoaded: false,
 
+  /** Lazy fetch — hanya fetch jika belum pernah load */
   fetchWallets: async () => {
     if (get().walletsLoaded) return;
     try {
@@ -35,6 +38,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ wallets: res.data, walletsLoaded: true });
     } catch {
       // handled by axios interceptor (401 → redirect to login)
+    }
+  },
+
+  /** Force fetch — selalu fetch ulang dari server */
+  refetchWallets: async () => {
+    try {
+      const res = await api.get('/wallets');
+      set({ wallets: res.data, walletsLoaded: true });
+    } catch {
+      // silent
     }
   },
 
@@ -54,6 +67,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   categories: [],
   categoriesLoaded: false,
 
+  /** Lazy fetch — hanya fetch jika belum pernah load */
   fetchCategories: async () => {
     if (get().categoriesLoaded) return;
     try {
@@ -61,6 +75,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ categories: res.data, categoriesLoaded: true });
     } catch {
       // handled by interceptor
+    }
+  },
+
+  /** Force fetch — selalu fetch ulang dari server (dipakai setelah login pertama) */
+  refetchCategories: async () => {
+    try {
+      const res = await api.get('/categories');
+      set({ categories: res.data, categoriesLoaded: true });
+    } catch {
+      // silent
     }
   },
 

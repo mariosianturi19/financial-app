@@ -15,15 +15,15 @@ const sections = [
   {
     label: 'Core',
     items: [
-      { href: '/dashboard',    label: 'Dashboard',  Icon: LayoutDashboard },
-      { href: '/transactions', label: 'Transaksi',  Icon: ArrowLeftRight  },
-      { href: '/wallets',      label: 'Dompet',     Icon: Wallet          },
-      { href: '/categories',   label: 'Kategori',   Icon: Tag             },
-      { href: '/budgets',      label: 'Anggaran',   Icon: Target          },
+      { href: '/dashboard',    label: 'Dashboard',    Icon: LayoutDashboard },
+      { href: '/transactions', label: 'Transactions', Icon: ArrowLeftRight  },
+      { href: '/wallets',      label: 'Wallets',      Icon: Wallet          },
+      { href: '/categories',   label: 'Categories',   Icon: Tag             },
+      { href: '/budgets',      label: 'Budgets',      Icon: Target          },
     ],
   },
   {
-    label: 'Kecerdasan',
+    label: 'Intelligence',
     items: [
       { href: '/analytics', label: 'Analytics',     Icon: TrendingUp },
       { href: '/forecast',  label: 'Forecasting',   Icon: Zap        },
@@ -40,8 +40,9 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch { /* ok */ }
-    clearAuth(); resetStore();
-    toast.success('Berhasil logout.');
+    clearAuth();
+    resetStore();
+    toast.success('Logged out successfully.');
     router.push('/login');
   };
 
@@ -80,7 +81,7 @@ export default function Sidebar() {
             <p style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               FinApp
             </p>
-            <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>Manajemen Keuangan</p>
+            <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>Personal Finance</p>
           </div>
         </div>
       </div>
@@ -109,25 +110,13 @@ export default function Sidebar() {
                 }}>
                   {active && (
                     <div style={{
-                      position: 'absolute', left: 0, top: '20%', bottom: '20%',
-                      width: 3, borderRadius: '0 3px 3px 0',
-                      background: 'var(--accent-violet)',
+                      position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+                      width: 3, height: 20, background: 'var(--accent-violet)',
+                      borderRadius: '0 3px 3px 0',
                     }} />
                   )}
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: active ? 'var(--accent-violet-mid)' : 'transparent',
-                    transition: 'background 0.15s',
-                  }}>
-                    <Icon size={15} strokeWidth={active ? 2.3 : 1.8} />
-                  </div>
-                  <span style={{
-                    fontSize: 13, fontWeight: active ? 600 : 450,
-                    transition: 'font-weight 0.15s',
-                  }}>
-                    {label}
-                  </span>
+                  <Icon size={16} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: active ? 600 : 400 }}>{label}</span>
                   {active && <ChevronRight size={12} style={{ marginLeft: 'auto', opacity: 0.5 }} />}
                 </Link>
               );
@@ -136,55 +125,44 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* User + Logout */}
+      {/* User footer */}
       <div style={{ padding: '12px 10px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '8px 10px', borderRadius: 12,
-          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-          marginBottom: 8,
+          display: 'flex', alignItems: 'center', gap: 9,
+          padding: '8px 10px', borderRadius: 10,
         }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 99,
+            width: 30, height: 30, borderRadius: 9, flexShrink: 0,
             background: 'var(--grad-violet)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 700, color: 'white', flexShrink: 0,
-            fontFamily: 'var(--font-display)',
+            fontSize: 11, fontWeight: 700, color: 'white', letterSpacing: '-0.01em',
           }}>
             {initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name ?? 'User'}
             </p>
             <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.email ?? ''}
             </p>
           </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-tertiary)', padding: 4, borderRadius: 6,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.15s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--accent-rose)')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)')}
+            title="Log out"
+          >
+            <LogOut size={15} />
+          </button>
         </div>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 10px', borderRadius: 10,
-            background: 'transparent', border: 'none',
-            color: 'var(--text-tertiary)', cursor: 'pointer',
-            fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500,
-            transition: 'background 0.15s, color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-rose-dim)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-rose)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
-          }}
-        >
-          <LogOut size={14} strokeWidth={1.8} />
-          Keluar
-        </button>
       </div>
     </aside>
   );

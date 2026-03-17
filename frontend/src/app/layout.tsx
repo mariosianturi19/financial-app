@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'FinApp — Manajemen Keuangan',
-  description: 'Platform manajemen keuangan pribadi modern',
+  title: 'FinApp — Personal Finance',
+  description: 'Modern personal finance management platform',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent' },
 };
 
@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

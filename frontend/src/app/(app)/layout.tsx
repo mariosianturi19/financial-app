@@ -1,13 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import FAB from '@/components/FAB';
+import CursorGlow from '@/components/CursorGlow';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
+import { useAppStore } from '@/store/appStore';
+import Modal from '@/components/ui/Modal';
+import TxForm, { TxFormData } from '@/components/ui/TxForm';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
 
+/* ── Empty form factory ─────────────────────────────────────── */
+const makeEmptyForm = (): TxFormData => ({
+  wallet_id: '', category_id: '', type: 'expense',
+  amount: '', description: '',
+  date: new Date().toISOString().split('T')[0],
+});
+
+/* ── Page transition ────────────────────────────────────────── */
 function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
@@ -26,105 +41,77 @@ function PageTransition({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ── App Layout ─────────────────────────────────────────────── */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, initFromStorage } = useAuthStore();
-  const [checked, setChecked] = useState(false);
+  const { wallets, walletsLoaded, fetchWallets, categories, categoriesLoaded, fetchCategories, refetchWallets } = useAppStore();
 
-  useEffect(() => {
-    initFromStorage();
-    setChecked(true);
-  }, [initFromStorage]);
+  const [checked, setChecked]         = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickForm, setQuickForm]       = useState<TxFormData>(makeEmptyForm());
+  const [saving, setSaving]             = useState(false);
 
+  useEffect(() => { initFromStorage(); setChecked(true); }, [initFromStorage]);
+  useEffect(() => { if (checked && !isAuthenticated) router.replace('/login'); }, [checked, isAuthenticated, router]);
+
+  /* Pre-load wallets & categories when layout mounts (authenticated) */
   useEffect(() => {
-    if (checked && !isAuthenticated) router.replace('/login');
-  }, [checked, isAuthenticated, router]);
+    if (checked && isAuthenticated) {
+      if (!walletsLoaded)   fetchWallets();
+      if (!categoriesLoaded) fetchCategories();
+    }
+  }, [checked, isAuthenticated, walletsLoaded, categoriesLoaded, fetchWallets, fetchCategories]);
+
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post('/transactions', quickForm);
+      toast.success('Transaction saved!');
+      setShowQuickAdd(false);
+      setQuickForm(makeEmptyForm());
+      // Refresh wallet balances
+      refetchWallets();
+    } catch {
+      toast.error('Failed to save transaction.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenQuickAdd = useCallback(() => {
+    setQuickForm(makeEmptyForm());
+    setShowQuickAdd(true);
+  }, []);
 
   if (!checked || !isAuthenticated) {
     return (
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100dvh',
-        background: 'var(--bg-base)',
-        flexDirection: 'column',
-        gap: 16,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100dvh', background: 'var(--bg-base)',
+        flexDirection: 'column', gap: 16,
       }}>
-        {/* Animated loading state */}
-        <motion.div
-          animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            width: 44, height: 44,
-            borderRadius: 13,
-            background: 'var(--grad-violet)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 22,
-            boxShadow: 'var(--shadow-violet)',
-          }}
-        >
-          💎
-        </motion.div>
-        <div className="spinner" style={{ width: 24, height: 24 }} />
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%',
+          border: '2.5px solid var(--border-default)',
+          borderTopColor: 'var(--accent-violet)',
+          animation: 'spin 0.7s linear infinite',
+        }} />
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100dvh',
-      background: 'var(--bg-base)',
-      position: 'relative',
-    }}>
-      {/* ── Ambient background orbs (desktop only) ── */}
-      <div className="orb orb-violet" style={{ display: 'none' }} aria-hidden="true" />
-      <div className="orb orb-emerald" style={{ display: 'none' }} aria-hidden="true" />
+    <>
+      {/* Cursor glow — desktop only */}
+      <CursorGlow />
 
-      {/* ── Desktop Sidebar ── */}
-      <div className="lg-sidebar" style={{ display: 'none' }}>
-        <Sidebar />
-      </div>
-
-      {/* ── Main Content ── */}
-      <main style={{
-        flex: 1,
-        minWidth: 0,
-        position: 'relative',
-        zIndex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <div
-          className="page-pb main-content"
-          style={{
-            maxWidth: 980,
-            margin: '0 auto',
-            width: '100%',
-            padding: '28px 20px 0',
-            flex: 1,
-          }}
-        >
-          <PageTransition>
-            {children}
-          </PageTransition>
-        </div>
-      </main>
-
-      {/* ── Mobile Bottom Nav ── */}
-      <div className="mobile-bottom-nav">
-        <BottomNav />
-      </div>
-
-      {/* ── Toast Notifications ── */}
+      {/* Toast notifications */}
       <Toaster
-        position="top-center"
-        gutter={8}
+        position="top-right"
         toastOptions={{
-          duration: 3500,
           style: {
             background: 'var(--bg-elevated)',
             color: 'var(--text-primary)',
@@ -132,39 +119,72 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             borderRadius: 14,
             fontSize: 13,
             fontFamily: 'var(--font-body)',
-            fontWeight: 500,
             boxShadow: 'var(--shadow-lg)',
-            padding: '12px 16px',
-            backdropFilter: 'blur(16px)',
-            maxWidth: 380,
           },
-          success: {
-            iconTheme: {
-              primary: 'var(--accent-emerald)',
-              secondary: 'var(--bg-elevated)',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: 'var(--accent-rose)',
-              secondary: 'var(--bg-elevated)',
-            },
-          },
+          success: { iconTheme: { primary: '#34d399', secondary: 'var(--bg-elevated)' } },
+          error:   { iconTheme: { primary: '#fb7185', secondary: 'var(--bg-elevated)' } },
         }}
       />
 
-      {/* ── Responsive styles ── */}
+      {/* App shell */}
+      <div style={{
+        display: 'flex', minHeight: '100dvh',
+        background: 'var(--bg-base)', position: 'relative',
+      }}>
+        {/* Sidebar (desktop) */}
+        <div className="hide-mobile">
+          <Sidebar />
+        </div>
+
+        {/* Main content */}
+        <main style={{
+          flex: 1, minWidth: 0,
+          padding: '24px 20px',
+          paddingBottom: 'calc(var(--bottom-nav-height) + 32px)',
+          maxWidth: 680, margin: '0 auto', width: '100%',
+          position: 'relative', zIndex: 1,
+        }}>
+          <PageTransition>{children}</PageTransition>
+        </main>
+      </div>
+
+      {/* Bottom nav (mobile) */}
+      <div className="show-mobile">
+        <BottomNav />
+      </div>
+
+      {/* FAB */}
+      <FAB onAddTransaction={handleOpenQuickAdd} />
+
+      {/* Global quick-add modal */}
+      <Modal
+        open={showQuickAdd}
+        onClose={() => { setShowQuickAdd(false); setQuickForm(makeEmptyForm()); }}
+        title="Add Transaction"
+        subtitle="Quick-add from anywhere"
+      >
+        <TxForm
+          form={quickForm}
+          setForm={setQuickForm}
+          wallets={wallets}
+          categories={categories}
+          onSubmit={handleQuickAdd}
+          saving={saving}
+          submitLabel="Save Transaction"
+          onCancel={() => { setShowQuickAdd(false); setQuickForm(makeEmptyForm()); }}
+        />
+      </Modal>
+
+      {/* Responsive helpers */}
       <style>{`
-        @media (min-width: 1024px) {
-          .lg-sidebar          { display: block !important; }
-          .mobile-bottom-nav   { display: none  !important; }
-          .main-content        { padding: 36px 44px 0 !important; }
-          .orb                 { display: block !important; }
+        .hide-mobile { display: flex; }
+        .show-mobile { display: none;  }
+        @media (max-width: 767px) {
+          .hide-mobile { display: none;  }
+          .show-mobile { display: block; }
         }
-        @media (max-width: 1023px) {
-          .mobile-bottom-nav   { display: block !important; }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </>
   );
 }

@@ -2,8 +2,13 @@
 export interface User { id: number; name: string; email: string; }
 
 export interface Category {
-  id: number; user_id: number; name: string;
-  type: 'income' | 'expense'; icon?: string; color: string;
+  id: number;
+  user_id: number;
+  name: string;
+  type: 'income' | 'expense';
+  icon?: string;
+  color: string;
+  is_default: boolean; // ← baru: kategori default tidak bisa dihapus
 }
 
 export interface Wallet {
