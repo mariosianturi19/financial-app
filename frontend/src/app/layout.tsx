@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'FinFlow — Manajemen Keuangan',
+  title: 'FinApp — Manajemen Keuangan',
   description: 'Platform manajemen keuangan pribadi modern',
-  manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent' },
 };
 

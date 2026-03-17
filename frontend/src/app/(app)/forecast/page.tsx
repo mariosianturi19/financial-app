@@ -4,181 +4,163 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { ForecastData } from '@/types';
 import { formatRupiah } from '@/lib/utils';
-import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, ReferenceLine,
-} from 'recharts';
+import PageHeader from '@/components/ui/PageHeader';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 
-const CONFIDENCE_CONFIG = {
-  high:   { label: 'Tinggi',   color: 'text-emerald-600', bg: 'bg-emerald-100' },
-  medium: { label: 'Sedang',   color: 'text-amber-600',   bg: 'bg-amber-100' },
-  low:    { label: 'Rendah',   color: 'text-red-600',     bg: 'bg-red-100' },
+const CONFIDENCE = {
+  high:   { label: 'Tinggi',  color: 'var(--accent-emerald)', bg: 'var(--accent-emerald-dim)', border: 'rgba(52,211,153,0.25)' },
+  medium: { label: 'Sedang',  color: 'var(--accent-amber)',   bg: 'var(--accent-amber-dim)',   border: 'rgba(251,191,36,0.25)' },
+  low:    { label: 'Rendah',  color: 'var(--accent-rose)',    bg: 'var(--accent-rose-dim)',     border: 'rgba(251,113,133,0.25)' },
 };
 
-const TREND_CONFIG = {
-  up:     { icon: '📈', label: 'Naik',   color: 'text-emerald-600' },
-  down:   { icon: '📉', label: 'Turun',  color: 'text-rose-600' },
-  stable: { icon: '➡️', label: 'Stabil', color: 'text-gray-600' },
+const TREND = {
+  up:     { icon: '📈', label: 'Naik',   color: 'var(--accent-emerald)' },
+  down:   { icon: '📉', label: 'Turun',  color: 'var(--accent-rose)' },
+  stable: { icon: '➡️', label: 'Stabil', color: 'var(--text-secondary)' },
 };
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: 'rgba(20,20,30,0.96)', border: '1px solid var(--border-default)', borderRadius: 12, padding: '10px 14px', boxShadow: 'var(--shadow-lg)', backdropFilter: 'blur(16px)' }}>
+      <p style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{label}</p>
+      {payload.map((e, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: e.color }} />
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{e.name}</span>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+            {formatRupiah(e.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ForecastPage() {
-  const [data, setData]     = useState<ForecastData | null>(null);
+  const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/analytics/forecast').then((r) => setData(r.data)).finally(() => setLoading(false));
-  }, []);
+  useEffect(() => { api.get('/analytics/forecast').then((r) => setData(r.data)).finally(() => setLoading(false)); }, []);
+
+  const formatY = (v: number) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}jt` : v >= 1_000 ? `${(v/1_000).toFixed(0)}rb` : String(v);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="skeleton" style={{ height: 60, borderRadius: 16, maxWidth: 300 }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 16 }} />)}
+      </div>
+      <div className="skeleton" style={{ height: 260, borderRadius: 20 }} />
     </div>
   );
 
-  if (!data) return <p className="text-red-500">Gagal memuat data forecast.</p>;
+  if (!data) return <p style={{ color: 'var(--accent-rose)' }}>Gagal memuat data forecast.</p>;
 
-  const formatY = (v: number) => {
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
-    if (v >= 1_000)     return `${(v / 1_000).toFixed(0)}rb`;
-    return String(v);
-  };
-
-  const incomeConf = TREND_CONFIG[data.income_trend];
-  const expConf    = TREND_CONFIG[data.expense_trend];
-
-  // Siapkan chart data — warna berbeda untuk actual vs forecast
-  const chartData = data.chart_data.map((d) => ({
-    ...d,
-    isForecast: d.type === 'forecast',
-  }));
-
-  const projMonthEnd = data.projected_month_end_expense;
-  const burnOverrun  = projMonthEnd > data.current_balance;
+  const incTrend = TREND[data.income_trend];
+  const expTrend = TREND[data.expense_trend];
+  const burnOverrun = data.projected_month_end_expense > data.current_balance;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Forecasting Keuangan</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Proyeksi berbasis regresi linear dari data historis 6 bulan</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader title="Forecasting" subtitle="Proyeksi berbasis regresi linear data 6 bulan" />
+
+      {/* Trend indicators */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {[
+          { title: 'Tren Pemasukan', ...incTrend },
+          { title: 'Tren Pengeluaran', ...expTrend },
+        ].map(({ title, icon, label: tLabel, color }) => (
+          <div key={title} className="card animate-fadeup" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>{icon}</span>
+            <div>
+              <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{title}</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color, fontFamily: 'var(--font-display)' }}>{tLabel}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Trend Indicators */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">Tren Pemasukan</p>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{incomeConf.icon}</span>
-            <span className={`text-lg font-bold ${incomeConf.color}`}>{incomeConf.label}</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Berdasarkan 6 bulan terakhir</p>
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">Tren Pengeluaran</p>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{expConf.icon}</span>
-            <span className={`text-lg font-bold ${expConf.color}`}>{expConf.label}</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Berdasarkan 6 bulan terakhir</p>
-        </div>
-      </div>
-
-      {/* Burn Rate This Month */}
-      <div className={`rounded-2xl border p-5 ${burnOverrun ? 'bg-rose-50 border-rose-200' : 'bg-white border-gray-100 shadow-sm'}`}>
-        <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Burn rate alert */}
+      {burnOverrun && (
+        <div className="animate-fadeup" style={{ padding: '14px 18px', borderRadius: 14, background: 'rgba(251,113,133,0.08)', border: '1px solid rgba(251,113,133,0.25)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
           <div>
-            <p className="text-sm font-semibold text-gray-700">Proyeksi Pengeluaran Akhir Bulan Ini</p>
-            <p className="text-xs text-gray-400 mt-0.5">Berdasarkan laju {formatRupiah(data.daily_burn_rate)}/hari</p>
-          </div>
-          <div className="text-right">
-            <p className={`text-2xl font-bold ${burnOverrun ? 'text-rose-600' : 'text-gray-800'}`}>
-              {formatRupiah(projMonthEnd)}
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-rose)', marginBottom: 2 }}>Proyeksi Defisit</p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Estimasi pengeluaran akhir bulan <strong style={{ color: 'var(--accent-rose)' }}>{formatRupiah(data.projected_month_end_expense)}</strong> melebihi saldo saat ini {formatRupiah(data.current_balance)}.
             </p>
-            {burnOverrun && (
-              <p className="text-xs text-rose-500 mt-0.5">⚠️ Melebihi saldo saat ini!</p>
-            )}
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-3 text-center text-xs">
-          <div className="bg-white/70 rounded-xl p-2">
-            <p className="text-gray-400">Sudah terpakai</p>
-            <p className="font-semibold text-gray-700 mt-0.5">{formatRupiah(data.current_month_expense)}</p>
+      )}
+
+      {/* Daily burn rate card */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+        {[
+          { label: 'Burn Rate/Hari', value: formatRupiah(data.daily_burn_rate), icon: '🔥' },
+          { label: 'Proyeksi Akhir Bulan', value: formatRupiah(data.projected_month_end_expense), icon: '📅' },
+          { label: 'Saldo Sekarang', value: formatRupiah(data.current_balance), icon: '💰' },
+        ].map(({ label, value, icon }, i) => (
+          <div key={i} className="card animate-fadeup" style={{ padding: '14px 16px', animationDelay: `${i * 60}ms` }}>
+            <p style={{ fontSize: 18, marginBottom: 8 }}>{icon}</p>
+            <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{label}</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>{value}</p>
           </div>
-          <div className="bg-white/70 rounded-xl p-2">
-            <p className="text-gray-400">Burn rate/hari</p>
-            <p className="font-semibold text-gray-700 mt-0.5">{formatRupiah(data.daily_burn_rate)}</p>
-          </div>
-          <div className="bg-white/70 rounded-xl p-2">
-            <p className="text-gray-400">Saldo sekarang</p>
-            <p className="font-semibold text-gray-700 mt-0.5">{formatRupiah(data.current_balance)}</p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Forecast Chart */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-1">
-          📊 Aktual + Proyeksi 3 Bulan ke Depan
-        </h2>
-        <p className="text-xs text-gray-400 mb-4">Area berwarna lebih terang = proyeksi</p>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 10 }} tickFormatter={(v) => v.split(' ')[0]} />
-              <YAxis tickFormatter={formatY} tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(v) => formatRupiah(Number(v))} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-
-              {/* Actual bars */}
-              <Bar dataKey="income" name="Pemasukan Aktual" fill="#10b981" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="expense" name="Pengeluaran Aktual" fill="#f43f5e" radius={[3, 3, 0, 0]} />
-
-              {/* Forecast bars */}
-              <Bar dataKey="projected_income" name="Proyeksi Pemasukan" fill="#10b981" fillOpacity={0.35} radius={[3, 3, 0, 0]} strokeDasharray="4 4" />
-              <Bar dataKey="projected_expense" name="Proyeksi Pengeluaran" fill="#f43f5e" fillOpacity={0.35} radius={[3, 3, 0, 0]} />
-            </ComposedChart>
-          </ResponsiveContainer>
+      {/* Chart */}
+      <div className="card animate-fadeup stagger-3" style={{ padding: '20px 16px' }}>
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Historis + Proyeksi</p>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Bar = aktual, Garis = proyeksi</p>
         </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <ComposedChart data={data.chart_data} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v.slice(0, 3)} />
+            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={formatY} />
+            <Tooltip content={<ChartTooltip />} />
+            <Bar dataKey="income" name="Pemasukan" fill="#34d399" fillOpacity={0.7} radius={[3,3,0,0]} />
+            <Bar dataKey="expense" name="Pengeluaran" fill="#fb7185" fillOpacity={0.7} radius={[3,3,0,0]} />
+            <Line dataKey="projected_income" name="Proj. Pemasukan" stroke="#34d399" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+            <Line dataKey="projected_expense" name="Proj. Pengeluaran" stroke="#fb7185" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
 
-      {/* Projection Cards */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Proyeksi 3 Bulan ke Depan</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {data.projections.map((proj, i) => {
-            const conf      = CONFIDENCE_CONFIG[proj.confidence];
-            const isPositive = proj.projected_savings >= 0;
-            return (
-              <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="font-semibold text-gray-800">{proj.month}</p>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${conf.bg} ${conf.color}`}>
-                    Akurasi {conf.label}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Pemasukan</span>
-                    <span className="font-medium text-emerald-600">{formatRupiah(proj.projected_income)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Pengeluaran</span>
-                    <span className="font-medium text-rose-600">{formatRupiah(proj.projected_expense)}</span>
-                  </div>
-                  <div className="border-t border-gray-100 pt-2 flex justify-between text-sm">
-                    <span className="text-gray-500 font-medium">Tabungan</span>
-                    <span className={`font-bold ${isPositive ? 'text-indigo-600' : 'text-rose-600'}`}>
-                      {isPositive ? '+' : ''}{formatRupiah(proj.projected_savings)}
-                    </span>
-                  </div>
-                </div>
+      {/* Projections table */}
+      <div className="card animate-fadeup stagger-4" style={{ overflow: 'hidden' }}>
+        <div style={{ padding: '18px 20px 12px' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Proyeksi 3 Bulan ke Depan</p>
+        </div>
+        {data.projections.map((proj, i) => {
+          const conf = CONFIDENCE[proj.confidence];
+          return (
+            <div key={i} className="animate-fadeup" style={{ padding: '14px 20px', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 16, animationDelay: `${i * 80}ms` }}>
+              <div style={{ flex: '0 0 80px' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{proj.month}</p>
+                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 99, background: conf.bg, color: conf.color, border: `1px solid ${conf.border}`, fontWeight: 600 }}>
+                  {conf.label}
+                </span>
               </div>
-            );
-          })}
-        </div>
-        <p className="text-xs text-gray-400 mt-3 text-center">
-          ⚠️ Proyeksi didasarkan pada tren historis menggunakan regresi linear. Akurasi bergantung pada konsistensi pola keuangan.
-        </p>
+              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                {[
+                  { label: 'Pemasukan', v: proj.projected_income, c: 'var(--accent-emerald)' },
+                  { label: 'Pengeluaran', v: proj.projected_expense, c: 'var(--accent-rose)' },
+                  { label: 'Tabungan', v: proj.projected_savings, c: proj.projected_savings >= 0 ? 'var(--accent-violet)' : 'var(--accent-rose)' },
+                ].map(({ label, v, c }) => (
+                  <div key={label}>
+                    <p style={{ fontSize: 9.5, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{label}</p>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: 12.5, fontWeight: 700, color: c, letterSpacing: '-0.01em' }}>{formatRupiah(v)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

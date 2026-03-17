@@ -1,4 +1,4 @@
-// ── Existing types (tidak berubah) ──────────────────────────────
+// ── Core types ───────────────────────────────────────────────────
 export interface User { id: number; name: string; email: string; }
 
 export interface Category {
@@ -29,39 +29,7 @@ export interface DashboardSummary {
   monthly_trend: { month: string; income: number; expense: number }[];
 }
 
-// ── Fase 2 types ────────────────────────────────────────────────
-export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
-export interface RecurringTransaction {
-  id: number; user_id: number; wallet_id: number; category_id: number;
-  type: 'income' | 'expense'; amount: number; description?: string;
-  frequency: RecurringFrequency; start_date: string; next_due_date: string;
-  end_date?: string; is_active: boolean; wallet?: Wallet; category?: Category;
-}
-
-export type GoalStatus = 'active' | 'completed' | 'cancelled';
-export interface FinancialGoal {
-  id: number; user_id: number; name: string; icon?: string; color: string;
-  target_amount: number; current_amount: number; target_date?: string;
-  status: GoalStatus; notes?: string; progress_percentage: number; remaining_amount: number;
-}
-
-export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-export interface Subscription {
-  id: number; user_id: number; wallet_id: number; category_id?: number;
-  name: string; icon?: string; color: string; amount: number;
-  billing_cycle: BillingCycle; next_billing_date: string; start_date: string;
-  is_active: boolean; notes?: string; yearly_cost: number; wallet?: Wallet; category?: Category;
-}
-
-export type DebtType   = 'debt' | 'receivable';
-export type DebtStatus = 'active' | 'partially_paid' | 'paid';
-export interface Debt {
-  id: number; user_id: number; wallet_id: number; counterparty: string;
-  type: DebtType; original_amount: number; paid_amount: number; remaining_amount: number;
-  due_date?: string; description?: string; status: DebtStatus; color: string; wallet?: Wallet;
-}
-
-// ── Fase 3 types ────────────────────────────────────────────────
+// ── Analytics types ───────────────────────────────────────────────
 export interface MonthlyData {
   month: string; month_key: string;
   income: number; expense: number; savings: number; savings_rate: number;

@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Budget;
 use App\Models\Transaction;
 use App\Models\Wallet;
-use App\Models\Subscription;
-use App\Models\Debt;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -347,43 +345,7 @@ class AnalyticsController extends Controller
             }
         }
 
-        // 5. Hutang jatuh tempo
-        $overdueDebts = Debt::where('user_id', $userId)
-            ->where('status', '!=', 'paid')
-            ->whereNotNull('due_date')
-            ->where('due_date', '<', now()->toDateString())
-            ->count();
 
-        if ($overdueDebts > 0) {
-            $insights[] = [
-                'type'     => 'danger',
-                'icon'     => '🔔',
-                'title'    => 'Hutang Jatuh Tempo Terlewat',
-                'message'  => "$overdueDebts hutang/piutang sudah melewati tanggal jatuh tempo. Segera tindak lanjuti.",
-                'priority' => 1,
-            ];
-        }
-
-        // 6. Tagihan langganan minggu ini
-        $upcomingSubs = Subscription::where('user_id', $userId)
-            ->where('is_active', true)
-            ->whereBetween('next_billing_date', [now()->toDateString(), now()->addDays(7)->toDateString()])
-            ->get();
-
-        if ($upcomingSubs->count() > 0) {
-            $totalSubs = $upcomingSubs->sum('amount');
-            $insights[] = [
-                'type'     => 'info',
-                'icon'     => '📅',
-                'title'    => 'Tagihan Langganan Mendekat',
-                'message'  => sprintf(
-                    '%d tagihan langganan dalam 7 hari ke depan, total %s.',
-                    $upcomingSubs->count(),
-                    'Rp ' . number_format($totalSubs, 0, ',', '.')
-                ),
-                'priority' => 2,
-            ];
-        }
 
         // 7. Emergency fund check
         $monthlyAvgExpense = 0;
