@@ -7,13 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends Model
 {
     protected $fillable = [
-        'wallet_id', 'category_id', 'type', 'amount', 'description', 'date',
+        'user_id', 'wallet_id', 'category_id', 'type', 'amount', 'description', 'date',
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date'   => 'date',
         'amount' => 'decimal:2',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function wallet()
     {

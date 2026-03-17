@@ -1,27 +1,24 @@
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "Financial App",
-  description: "Aplikasi manajemen keuangan pribadi",
+  title: 'FinFlow — Manajemen Keuangan',
+  description: 'Platform manajemen keuangan pribadi modern',
+  manifest: '/manifest.json',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent' },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#0a0a0f',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
-      <body className={`${geistSans.variable} antialiased`}>
-        {children}
-      </body>
+    <html lang="id" suppressHydrationWarning>
+      <body>{children}</body>
     </html>
   );
 }

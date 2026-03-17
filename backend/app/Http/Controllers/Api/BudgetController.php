@@ -6,16 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\Budget;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class BudgetController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->get('month', now()->format('Y-m'));
-        $budgets = Budget::with('category')->where('month', $month)->get();
+        $userId = Auth::id();
+        $month  = $request->input('month', now()->format('Y-m'));
 
-        $budgets->each(function ($budget) use ($month) {
-            $budget->spent = (float) Transaction::where('category_id', $budget->category_id)
+        $budgets = Budget::with('category')
+            ->where('user_id', $userId)
+            ->where('month', $month)
+            ->get();
+
+        $budgets->each(function ($budget) use ($month, $userId) {
+            $budget->spent = (float) Transaction::where('user_id', $userId)
+                ->where('category_id', $budget->category_id)
                 ->where('type', 'expense')
                 ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$month])
                 ->sum('amount');
@@ -33,7 +40,11 @@ class BudgetController extends Controller
         ]);
 
         $budget = Budget::updateOrCreate(
-            ['category_id' => $request->category_id, 'month' => $request->month],
+            [
+                'user_id'     => Auth::id(),
+                'category_id' => $request->category_id,
+                'month'       => $request->month,
+            ],
             ['amount' => $request->amount]
         );
         $budget->load('category');
@@ -43,7 +54,8 @@ class BudgetController extends Controller
 
     public function destroy(string $id)
     {
-        Budget::findOrFail($id)->delete();
+        $budget = Budget::where('user_id', Auth::id())->findOrFail($id);
+        $budget->delete();
         return response()->json(['message' => 'Budget dihapus.']);
     }
 }

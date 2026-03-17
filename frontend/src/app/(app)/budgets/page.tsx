@@ -1,248 +1,191 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
-import { Budget, Category } from '@/types';
+import { Budget } from '@/types';
 import { formatRupiah, formatMonth, addMonths } from '@/lib/utils';
+import { useAppStore } from '@/store/appStore';
+import PageHeader from '@/components/ui/PageHeader';
+import Modal from '@/components/ui/Modal';
+import EmptyState from '@/components/ui/EmptyState';
 import toast from 'react-hot-toast';
 
 export default function BudgetsPage() {
+  const { categories, categoriesLoaded, fetchCategories } = useAppStore();
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7));
-
-  // Add modal
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ category_id: '', amount: '' });
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => { if (!categoriesLoaded) fetchCategories(); }, [categoriesLoaded, fetchCategories]);
+
   const fetchBudgets = (month: string) => {
     setLoading(true);
-    api.get(`/budgets?month=${month}`)
-      .then((res) => setBudgets(res.data))
-      .finally(() => setLoading(false));
+    api.get(`/budgets?month=${month}`).then((r) => setBudgets(r.data)).finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    api.get('/categories').then((res) => setCategories(res.data));
-  }, []);
-
-  useEffect(() => {
-    fetchBudgets(currentMonth);
-  }, [currentMonth]);
+  useEffect(() => { fetchBudgets(currentMonth); }, [currentMonth]);
 
   const expenseCategories = categories.filter((c) => c.type === 'expense');
-  const usedCategoryIds = new Set(budgets.map((b) => b.category_id));
-  const availableCategories = expenseCategories.filter((c) => !usedCategoryIds.has(c.id));
+  const usedIds = new Set(budgets.map((b) => b.category_id));
+  const availableCats = expenseCategories.filter((c) => !usedIds.has(c.id));
 
   const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+    e.preventDefault(); setSaving(true);
     try {
       const res = await api.post('/budgets', { ...addForm, month: currentMonth });
-      setBudgets([...budgets, res.data]);
-      setAddForm({ category_id: '', amount: '' });
-      setShowAdd(false);
-      toast.success('Anggaran berhasil ditambah!');
-    } catch {
-      toast.error('Gagal menambah anggaran.');
-    } finally {
-      setSaving(false);
-    }
+      setBudgets([...budgets, res.data]); setShowAdd(false); setAddForm({ category_id: '', amount: '' });
+      toast.success('Anggaran ditambah!');
+    } catch { toast.error('Gagal.'); } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Hapus anggaran ini?')) return;
+    if (!confirm('Hapus?')) return;
     try {
-      await api.delete(`/budgets/${id}`);
-      setBudgets(budgets.filter((b) => b.id !== id));
-      toast.success('Anggaran dihapus.');
-    } catch {
-      toast.error('Gagal menghapus anggaran.');
-    }
+      await api.delete(`/budgets/${id}`); setBudgets(budgets.filter((b) => b.id !== id));
+      toast.success('Dihapus.');
+    } catch { toast.error('Gagal.'); }
   };
 
   const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
   const totalSpent = budgets.reduce((s, b) => s + Number(b.spent ?? 0), 0);
+  const overallPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  const isCurrentMonth = currentMonth === new Date().toISOString().slice(0, 7);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Anggaran</h1>
-          <p className="text-sm text-gray-400 mt-1">Batas pengeluaran per kategori</p>
-        </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          disabled={availableCategories.length === 0}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          + Tambah Anggaran
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader
+        title="Anggaran"
+        subtitle={formatMonth(currentMonth)}
+        action={
+          <button className="btn-primary" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <Plus size={15} /> Tambah
+          </button>
+        }
+      />
+
+      {/* Month selector */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => setCurrentMonth(addMonths(currentMonth, -1))} style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+          <ChevronLeft size={16} />
+        </button>
+        <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+          {formatMonth(currentMonth)} {isCurrentMonth && <span style={{ fontSize: 11, color: 'var(--accent-violet)', marginLeft: 6, fontWeight: 500 }}>• Bulan ini</span>}
+        </span>
+        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+          <ChevronRight size={16} />
         </button>
       </div>
 
-      {/* Month Navigation */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
-        <button
-          onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}
-          className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600"
-        >
-          ‹
-        </button>
-        <div className="text-center">
-          <p className="font-semibold text-gray-700">{formatMonth(currentMonth)}</p>
-          {totalBudget > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              {formatRupiah(totalSpent)} / {formatRupiah(totalBudget)} terpakai
-            </p>
-          )}
+      {/* Overall summary */}
+      {budgets.length > 0 && (
+        <div className="card noise" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, var(--bg-elevated) 0%, #1a1630 100%)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Anggaran</p>
+              <p className="stat-value" style={{ fontSize: 22, color: 'var(--text-primary)' }}>{formatRupiah(totalBudget)}</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Terpakai</p>
+              <p className="stat-value" style={{ fontSize: 22, color: totalSpent > totalBudget ? 'var(--accent-rose)' : 'var(--text-primary)' }}>{formatRupiah(totalSpent)}</p>
+            </div>
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{
+              width: `${overallPct}%`,
+              background: totalSpent > totalBudget ? 'var(--grad-rose)' : overallPct >= 80 ? 'var(--grad-amber)' : 'var(--grad-violet)',
+            }} />
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>
+            {formatRupiah(Math.max(totalBudget - totalSpent, 0))} tersisa · {Math.round(overallPct)}% terpakai
+          </p>
         </div>
-        <button
-          onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600"
-        >
-          ›
-        </button>
-      </div>
+      )}
 
-      {/* Budget List */}
+      {/* Budget list */}
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 90, borderRadius: 16 }} />)}
         </div>
       ) : budgets.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-300">
-          <div className="text-5xl mb-3">🎯</div>
-          <p className="text-sm font-medium">Belum ada anggaran untuk bulan ini.</p>
-          <p className="text-xs mt-1">Klik "Tambah Anggaran" untuk mulai mengatur keuangan.</p>
+        <div className="card">
+          <EmptyState icon="🎯" title="Belum ada anggaran" description="Tetapkan batas pengeluaran per kategori" action={<button className="btn-primary" onClick={() => setShowAdd(true)}>Tambah Anggaran</button>} />
         </div>
       ) : (
-        <div className="space-y-3">
-          {budgets.map((budget) => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {budgets.map((budget, i) => {
             const spent = Number(budget.spent ?? 0);
             const limit = Number(budget.amount);
             const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
             const over = spent > limit;
-            const barColor = over ? 'bg-red-500' : pct >= 70 ? 'bg-amber-400' : 'bg-emerald-500';
-            const amtColor = over ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-emerald-600';
+            const fillColor = over ? 'var(--grad-rose)' : pct >= 80 ? 'var(--grad-amber)' : 'var(--grad-emerald)';
 
             return (
-              <div key={budget.id} className="bg-white rounded-2xl shadow-sm p-5 group">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-                      style={{
-                        backgroundColor: (budget.category?.color ?? '#6366f1') + '25',
-                        color: budget.category?.color ?? '#6366f1',
-                      }}
-                    >
-                      {budget.category?.icon ?? '📁'}
+              <div key={budget.id} className="card card-hover animate-fadeup" style={{ padding: '18px 20px', animationDelay: `${i * 50}ms` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: (budget.category?.color ?? '#7c6ff7') + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                      {budget.category?.icon ?? '📂'}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-700">{budget.category?.name ?? '—'}</p>
-                      <p className={`text-xs font-semibold ${amtColor}`}>
-                        {formatRupiah(spent)} / {formatRupiah(limit)}
-                        {over && <span className="ml-1 text-red-500">⚠ Melebihi!</span>}
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{budget.category?.name ?? 'Kategori'}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                        {formatRupiah(spent)} <span style={{ color: 'var(--border-strong)' }}>/</span> {formatRupiah(limit)}
+                        {over && <span style={{ color: 'var(--accent-rose)', marginLeft: 6, fontWeight: 600 }}>Over!</span>}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
-                    <span className="text-xs text-gray-400">{pct.toFixed(0)}%</span>
-                    <button
-                      onClick={() => handleDelete(budget.id)}
-                      className="text-gray-300 hover:text-red-500 text-lg transition"
-                      title="Hapus"
-                    >
-                      ×
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: over ? 'var(--accent-rose)' : pct >= 80 ? 'var(--accent-amber)' : 'var(--accent-emerald)' }}>
+                      {Math.round(pct)}%
+                    </span>
+                    <button onClick={() => handleDelete(budget.id)} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(251,113,133,0.08)', border: 'none', cursor: 'pointer', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6, transition: 'opacity 0.15s' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}>
+                      <Trash2 size={11} />
                     </button>
                   </div>
                 </div>
-
-                {/* Progress Bar */}
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div
-                    className={`${barColor} h-2 rounded-full transition-all duration-300`}
-                    style={{ width: `${pct}%` }}
-                  />
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${pct}%`, background: fillColor }} />
                 </div>
-
-                <div className="flex justify-between mt-1.5 text-xs text-gray-400">
-                  <span>Sisa: <span className={amtColor}>{formatRupiah(Math.max(limit - spent, 0))}</span></span>
-                  <span>Anggaran: {formatRupiah(limit)}</span>
-                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                  {formatRupiah(Math.max(limit - spent, 0))} tersisa
+                </p>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Add Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-                Tambah Anggaran — {formatMonth(currentMonth)}
-              </h2>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); setAddForm({ category_id: '', amount: '' }); }} title="Tambah Anggaran">
+        {availableCats.length === 0 ? (
+          <p style={{ fontSize: 14, color: 'var(--text-tertiary)', textAlign: 'center', padding: '20px 0' }}>
+            Semua kategori sudah dianggarkan bulan ini.
+          </p>
+        ) : (
+          <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori Pengeluaran</label>
+              <select value={addForm.category_id} required onChange={(e) => setAddForm({ ...addForm, category_id: e.target.value })} className="input-base">
+                <option value="">Pilih kategori</option>
+                {availableCats.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+              </select>
             </div>
-
-            {availableCategories.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">
-                Semua kategori pengeluaran sudah dianggarkan untuk bulan ini.
-              </p>
-            ) : (
-              <form onSubmit={handleAdd} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Kategori</label>
-                  <select
-                    value={addForm.category_id}
-                    required
-                    onChange={(e) => setAddForm({ ...addForm, category_id: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  >
-                    <option value="">Pilih kategori pengeluaran</option>
-                    {availableCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Batas Anggaran (Rp)</label>
-                  <input
-                    type="number"
-                    min="1000"
-                    required
-                    value={addForm.amount}
-                    onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    placeholder="500000"
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-                  >
-                    {saving ? 'Menyimpan...' : 'Simpan'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAdd(false)}
-                    className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Batas Anggaran (Rp)</label>
+              <input type="number" min="1" required value={addForm.amount} onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} className="input-base" placeholder="500000" />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1 }}>{saving ? 'Menyimpan...' : 'Simpan Anggaran'}</button>
+              <button type="button" className="btn-ghost" onClick={() => setShowAdd(false)}>Batal</button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

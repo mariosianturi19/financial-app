@@ -1,137 +1,167 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Plus, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import api from '@/lib/api';
 import { Wallet } from '@/types';
 import { formatRupiah } from '@/lib/utils';
+import { useAppStore } from '@/store/appStore';
+import PageHeader from '@/components/ui/PageHeader';
+import Modal from '@/components/ui/Modal';
+import EmptyState from '@/components/ui/EmptyState';
 import toast from 'react-hot-toast';
 
+const emptyForm = { name: '', balance: '', currency: 'IDR', color: '#7c6ff7' };
+
 export default function WalletsPage() {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', balance: '', currency: 'IDR', color: '#10b981' });
-  const [saving, setSaving] = useState(false);
+  const { wallets, walletsLoaded, setWallets, updateWalletInStore, removeWalletFromStore } = useAppStore();
+  const [loading, setLoading] = useState(!walletsLoaded);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ ...emptyForm });
+  const [addSaving, setAddSaving] = useState(false);
+  const [editWallet, setEditWallet] = useState<Wallet | null>(null);
+  const [editForm, setEditForm] = useState({ ...emptyForm });
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
-    api.get('/wallets').then((res) => setWallets(res.data)).finally(() => setLoading(false));
-  }, []);
+    if (walletsLoaded) { setLoading(false); return; }
+    api.get('/wallets').then((r) => setWallets(r.data)).finally(() => setLoading(false));
+  }, [walletsLoaded, setWallets]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault(); setAddSaving(true);
     try {
-      const res = await api.post('/wallets', form);
+      const res = await api.post('/wallets', addForm);
       setWallets([...wallets, res.data]);
-      setShowForm(false);
-      setForm({ name: '', balance: '', currency: 'IDR', color: '#10b981' });
-      toast.success('Dompet berhasil ditambah!');
-    } catch {
-      toast.error('Gagal menambah dompet.');
-    } finally {
-      setSaving(false);
-    }
+      setShowAdd(false); setAddForm({ ...emptyForm });
+      toast.success('Dompet ditambah!');
+    } catch { toast.error('Gagal.'); } finally { setAddSaving(false); }
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!editWallet) return; setEditSaving(true);
+    try {
+      const res = await api.put(`/wallets/${editWallet.id}`, editForm);
+      updateWalletInStore(res.data); setEditWallet(null);
+      toast.success('Dompet diubah!');
+    } catch { toast.error('Gagal.'); } finally { setEditSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Hapus dompet ini?')) return;
     try {
-      await api.delete(`/wallets/${id}`);
-      setWallets(wallets.filter((w) => w.id !== id));
+      await api.delete(`/wallets/${id}`); removeWalletFromStore(id);
       toast.success('Dompet dihapus.');
-    } catch {
-      toast.error('Gagal menghapus dompet.');
-    }
+    } catch { toast.error('Gagal.'); }
   };
 
-  if (loading) return <p className="text-gray-500">Memuat data...</p>;
+  const openEdit = (w: Wallet) => {
+    setEditWallet(w);
+    setEditForm({ name: w.name, balance: String(w.balance), currency: w.currency, color: w.color });
+  };
+
+  const totalBalance = wallets.reduce((s, w) => s + Number(w.balance), 0);
+
+  const WalletForm = ({ form, setForm, onSubmit, saving, submitLabel }: {
+    form: typeof emptyForm; setForm: React.Dispatch<React.SetStateAction<typeof emptyForm>>;
+    onSubmit: (e: React.FormEvent) => void; saving: boolean; submitLabel: string;
+  }) => (
+    <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {[
+        { label: 'Nama Dompet', key: 'name', type: 'text', placeholder: 'BCA, GoPay, Tunai...' },
+        { label: 'Saldo (Rp)', key: 'balance', type: 'number', placeholder: '0' },
+      ].map(({ label, key, type, placeholder }) => (
+        <div key={key}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
+          <input type={type} value={form[key as keyof typeof form]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className="input-base" placeholder={placeholder} required={key === 'name'} />
+        </div>
+      ))}
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mata Uang</label>
+        <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="input-base">
+          {['IDR', 'USD', 'EUR', 'SGD'].map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Warna</label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {['#7c6ff7', '#34d399', '#fb7185', '#fbbf24', '#60a5fa', '#a78bfa', '#f97316', '#14b8a6'].map((c) => (
+            <button key={c} type="button" onClick={() => setForm({ ...form, color: c })} style={{
+              width: 32, height: 32, borderRadius: '50%', background: c, cursor: 'pointer',
+              border: `3px solid ${form.color === c ? 'white' : 'transparent'}`,
+              boxShadow: form.color === c ? `0 0 0 2px ${c}` : 'none',
+              transition: 'all 0.15s',
+            }} />
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+        <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1 }}>
+          {saving ? 'Menyimpan...' : submitLabel}
+        </button>
+        <button type="button" className="btn-ghost" onClick={() => { setShowAdd(false); setEditWallet(null); }}>Batal</button>
+      </div>
+    </form>
+  );
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 16 }} />)}</div>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Dompet</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
-        >
-          {showForm ? 'Batal' : '+ Tambah Dompet'}
-        </button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader
+        title="Dompet"
+        subtitle={`${wallets.length} dompet · ${formatRupiah(totalBalance)}`}
+        action={
+          <button className="btn-primary" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <Plus size={15} /> Tambah
+          </button>
+        }
+      />
 
-      {showForm && (
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Tambah Dompet</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Dompet</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Contoh: BCA, Tunai..."
-              />
+      {wallets.length === 0 ? (
+        <div className="card">
+          <EmptyState icon="👛" title="Belum ada dompet" description="Tambahkan dompet pertama untuk mulai melacak keuangan" action={<button className="btn-primary" onClick={() => setShowAdd(true)}>Tambah Dompet</button>} />
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          {wallets.map((wallet, i) => (
+            <div key={wallet.id} className="card card-hover animate-fadeup" style={{ padding: 20, animationDelay: `${i * 60}ms`, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: wallet.color, borderRadius: '16px 16px 0 0' }} />
+              <div style={{ position: 'absolute', bottom: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: wallet.color, opacity: 0.08, filter: 'blur(16px)' }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: wallet.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                    {wallet.icon ?? '👛'}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{wallet.name}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{wallet.currency}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button onClick={() => openEdit(wallet)} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+                    <Edit2 size={12} />
+                  </button>
+                  <button onClick={() => handleDelete(wallet.id)} style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(251,113,133,0.1)', border: '1px solid rgba(251,113,133,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--accent-rose)' }}>
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+
+              <p className="stat-value" style={{ fontSize: 22, color: 'var(--text-primary)' }}>{formatRupiah(Number(wallet.balance))}</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Saldo Awal (Rp)</label>
-              <input
-                type="number"
-                value={form.balance}
-                onChange={(e) => setForm({ ...form, balance: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Warna</label>
-              <input
-                type="color"
-                value={form.color}
-                onChange={(e) => setForm({ ...form, color: e.target.value })}
-                className="h-10 w-full rounded-lg border border-gray-300 cursor-pointer"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-              >
-                {saving ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
-          </form>
+          ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {wallets.length === 0 ? (
-          <p className="text-gray-400 text-sm col-span-3 text-center py-10">Belum ada dompet.</p>
-        ) : (
-          wallets.map((wallet) => (
-            <div
-              key={wallet.id}
-              className="bg-white rounded-2xl shadow-sm p-6 relative border-l-4"
-              style={{ borderColor: wallet.color }}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{wallet.name}</p>
-                  <p className="text-xl font-bold text-gray-800 mt-1">{formatRupiah(wallet.balance)}</p>
-                  <p className="text-xs text-gray-400 mt-1">{wallet.currency}</p>
-                </div>
-                <button
-                  onClick={() => handleDelete(wallet.id)}
-                  className="text-gray-300 hover:text-red-500 transition text-xl"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Tambah Dompet">
+        <WalletForm form={addForm} setForm={setAddForm} onSubmit={handleAdd} saving={addSaving} submitLabel="Simpan Dompet" />
+      </Modal>
+
+      <Modal open={!!editWallet} onClose={() => setEditWallet(null)} title="Edit Dompet">
+        <WalletForm form={editForm} setForm={setEditForm} onSubmit={handleEdit} saving={editSaving} submitLabel="Simpan Perubahan" />
+      </Modal>
     </div>
   );
 }
