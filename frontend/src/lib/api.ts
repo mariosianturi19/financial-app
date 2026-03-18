@@ -1,29 +1,24 @@
 import axios from 'axios';
 
+/**
+ * Semua request dikirim ke /api/proxy/* (Next.js Route Handler).
+ * Route Handler yang akan membaca httpOnly cookie dan menginject
+ * Authorization: Bearer token sebelum meneruskan ke Laravel.
+ * Token TIDAK pernah terekspos ke browser / JavaScript.
+ */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+  baseURL: '/api/proxy',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
 
-// Request interceptor — inject Bearer token dari localStorage
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Response interceptor — handle 401 (token expired/invalid)
+// Response interceptor — jika proxy mengembalikan 401, redirect ke login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

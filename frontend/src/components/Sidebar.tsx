@@ -6,7 +6,6 @@ import {
   LayoutDashboard, ArrowLeftRight, Wallet, Tag, Target,
   TrendingUp, Zap, Lightbulb, LogOut, ChevronRight,
 } from 'lucide-react';
-import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
 import toast from 'react-hot-toast';
@@ -39,7 +38,7 @@ export default function Sidebar() {
   const { resetStore }      = useAppStore();
 
   const handleLogout = async () => {
-    try { await api.post('/logout'); } catch { /* ok */ }
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch { /* ok */ }
     clearAuth();
     resetStore();
     toast.success('Logged out successfully.');

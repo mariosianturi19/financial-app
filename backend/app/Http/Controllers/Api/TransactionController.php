@@ -22,20 +22,16 @@ class TransactionController extends Controller
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
-        $perPage = (int) $request->get('per_page', 20);
-        $perPage = min(max($perPage, 5), 100); // clamp antara 5–100
-
-        $paginated = $query->orderByDesc('date')
-                           ->orderByDesc('id')
-                           ->paginate($perPage);
+        $perPage   = min(max((int) $request->get('per_page', 20), 5), 100);
+        $paginated = $query->orderByDesc('date')->orderByDesc('id')->paginate($perPage);
 
         return response()->json([
-            'data'          => $paginated->items(),
-            'current_page'  => $paginated->currentPage(),
-            'last_page'     => $paginated->lastPage(),
-            'per_page'      => $paginated->perPage(),
-            'total'         => $paginated->total(),
-            'has_more'      => $paginated->hasMorePages(),
+            'data'         => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page'    => $paginated->lastPage(),
+            'per_page'     => $paginated->perPage(),
+            'total'        => $paginated->total(),
+            'has_more'     => $paginated->hasMorePages(),
         ]);
     }
 
@@ -62,11 +58,15 @@ class TransactionController extends Controller
             'date'        => $request->date,
         ]);
 
+        // Inkremental update dulu (cepat) …
         if ($request->type === 'income') {
             $wallet->increment('balance', $request->amount);
         } else {
             $wallet->decrement('balance', $request->amount);
         }
+
+        // … lalu recalculate sebagai safety net agar balance selalu sinkron
+        $wallet->recalculateBalance();
 
         return response()->json($transaction->load('category', 'wallet'), 201);
     }
@@ -92,33 +92,23 @@ class TransactionController extends Controller
 
         $transaction = Transaction::where('user_id', Auth::id())->findOrFail($id);
 
-        // Simpan nilai LAMA sebelum diubah apapun
+        // Simpan referensi wallet lama sebelum update
         $oldWalletId = $transaction->wallet_id;
-        $oldType     = $transaction->type;
-        $oldAmount   = (float) $transaction->amount;
 
-        // Reverse efek lama ke wallet lama
-        $oldWallet = Wallet::where('user_id', Auth::id())->findOrFail($oldWalletId);
-        if ($oldType === 'income') {
-            $oldWallet->decrement('balance', $oldAmount);
-        } else {
-            $oldWallet->increment('balance', $oldAmount);
-        }
-
-        // Update transaksi dengan nilai baru
+        // Update transaksi
         $transaction->update($request->only(
             'wallet_id', 'category_id', 'type', 'amount', 'description', 'date'
         ));
 
-        // Reload fresh dari DB agar nilai baru pasti ter-reflect
         $transaction->refresh();
 
-        // Apply efek baru ke wallet baru
-        $newWallet = Wallet::where('user_id', Auth::id())->findOrFail($transaction->wallet_id);
-        if ($transaction->type === 'income') {
-            $newWallet->increment('balance', (float) $transaction->amount);
-        } else {
-            $newWallet->decrement('balance', (float) $transaction->amount);
+        // Recalculate wallet lama (dan wallet baru jika berbeda)
+        $oldWallet = Wallet::where('user_id', Auth::id())->findOrFail($oldWalletId);
+        $oldWallet->recalculateBalance();
+
+        if ($transaction->wallet_id !== $oldWalletId) {
+            $newWallet = Wallet::where('user_id', Auth::id())->findOrFail($transaction->wallet_id);
+            $newWallet->recalculateBalance();
         }
 
         return response()->json($transaction->load('category', 'wallet'));
@@ -127,15 +117,14 @@ class TransactionController extends Controller
     public function destroy(string $id)
     {
         $transaction = Transaction::where('user_id', Auth::id())->findOrFail($id);
-
-        $wallet = Wallet::where('user_id', Auth::id())->findOrFail($transaction->wallet_id);
-        if ($transaction->type === 'income') {
-            $wallet->decrement('balance', (float) $transaction->amount);
-        } else {
-            $wallet->increment('balance', (float) $transaction->amount);
-        }
+        $walletId    = $transaction->wallet_id;
 
         $transaction->delete();
+
+        // Recalculate setelah hapus
+        $wallet = Wallet::where('user_id', Auth::id())->findOrFail($walletId);
+        $wallet->recalculateBalance();
+
         return response()->json(['message' => 'Transaksi dihapus.']);
     }
 }

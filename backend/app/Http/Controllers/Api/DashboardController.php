@@ -13,19 +13,23 @@ class DashboardController extends Controller
 {
     public function summary()
     {
-        $userId       = Auth::id();
-        $currentMonth = now()->format('Y-m');
+        $userId = Auth::id();
+        $now    = now();
+        $year   = (int) $now->format('Y');
+        $month  = (int) $now->format('m');
 
         $totalBalance = Wallet::where('user_id', $userId)->sum('balance');
 
         $totalIncome = Transaction::where('user_id', $userId)
             ->where('type', 'income')
-            ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$currentMonth])
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
             ->sum('amount');
 
         $totalExpense = Transaction::where('user_id', $userId)
             ->where('type', 'expense')
-            ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$currentMonth])
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
             ->sum('amount');
 
         $recentTransactions = Transaction::with('category', 'wallet')
@@ -37,24 +41,29 @@ class DashboardController extends Controller
         $expenseByCategory = Transaction::select('category_id', DB::raw('SUM(amount) as total'))
             ->where('user_id', $userId)
             ->where('type', 'expense')
-            ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$currentMonth])
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
             ->groupBy('category_id')
             ->with('category')
             ->get();
 
         $monthlyTrend = [];
         for ($i = 5; $i >= 0; $i--) {
-            $date  = Carbon::now()->subMonths($i);
-            $month = $date->format('Y-m');
+            $date = Carbon::now()->subMonths($i);
+            $y    = (int) $date->format('Y');
+            $m    = (int) $date->format('m');
+
             $monthlyTrend[] = [
                 'month'   => $date->format('M Y'),
                 'income'  => (float) Transaction::where('user_id', $userId)
                     ->where('type', 'income')
-                    ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$month])
+                    ->whereYear('date', $y)
+                    ->whereMonth('date', $m)
                     ->sum('amount'),
                 'expense' => (float) Transaction::where('user_id', $userId)
                     ->where('type', 'expense')
-                    ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$month])
+                    ->whereYear('date', $y)
+                    ->whereMonth('date', $m)
                     ->sum('amount'),
             ];
         }

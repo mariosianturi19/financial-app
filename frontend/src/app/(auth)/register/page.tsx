@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
-import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -38,14 +37,23 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const res = await api.post('/register', form);
-      setAuth(res.data.user, res.data.token);
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const errors = data?.errors as Record<string, string[]> | undefined;
+        if (errors) toast.error(Object.values(errors)[0]?.[0] ?? 'Registration failed.');
+        else toast.error(data?.message ?? 'Registration failed. Please try again.');
+        return;
+      }
+      setAuth(data.user);
       toast.success('Account created successfully!');
       router.push('/dashboard');
-    } catch (err: unknown) {
-      const errors = (err as { response?: { data?: { errors?: Record<string, string[]> } } })?.response?.data?.errors;
-      if (errors) toast.error(Object.values(errors)[0]?.[0] ?? 'Registration failed.');
-      else toast.error('Registration failed. Please try again.');
+    } catch {
+      toast.error('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

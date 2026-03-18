@@ -3,41 +3,52 @@ import { User } from '@/types';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  isInitializing: boolean;
+  setAuth: (user: User) => void;
   clearAuth: () => void;
-  initFromStorage: () => void;
+  initFromStorage: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
+  isInitializing: true,
 
-  setAuth: (user, token) => {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('auth_user', JSON.stringify(user));
-    set({ user, token, isAuthenticated: true });
+  /**
+   * Dipanggil setelah login/register berhasil.
+   * Token sudah disimpan di httpOnly cookie oleh Route Handler.
+   */
+  setAuth: (user: User) => {
+    set({ user, isAuthenticated: true });
   },
 
+  /**
+   * Dipanggil saat logout.
+   * Cookie dihapus oleh /api/auth/logout Route Handler.
+   */
   clearAuth: () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    set({ user: null, token: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false });
   },
 
-  initFromStorage: () => {
-    const token = localStorage.getItem('auth_token');
-    const userStr = localStorage.getItem('auth_user');
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr) as User;
-        set({ user, token, isAuthenticated: true });
-      } catch {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
+  /**
+   * Cek session dengan memanggil /api/auth/me (server-side cookie check).
+   * Menggantikan baca localStorage.
+   */
+  initFromStorage: async () => {
+    set({ isInitializing: true });
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const user = (await res.json()) as User;
+        set({ user, isAuthenticated: true });
+      } else {
+        set({ user: null, isAuthenticated: false });
       }
+    } catch {
+      set({ user: null, isAuthenticated: false });
+    } finally {
+      set({ isInitializing: false });
     }
   },
 }));

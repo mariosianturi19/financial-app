@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight, TrendingUp, Shield, Zap } from 'lucide-react';
-import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -26,11 +25,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post('/login', form);
-      setAuth(res.data.user, res.data.token);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.errors?.email?.[0] ?? data?.message ?? 'Invalid email or password.');
+        return;
+      }
+      setAuth(data.user);
       router.push('/dashboard');
     } catch {
-      toast.error('Invalid email or password.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

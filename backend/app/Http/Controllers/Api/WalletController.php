@@ -65,4 +65,18 @@ class WalletController extends Controller
         $wallet->delete();
         return response()->json(['message' => 'Dompet dihapus.']);
     }
+
+    /**
+     * Recalculate saldo wallet dari semua transaksi (untuk perbaikan data production).
+     */
+    public function recalculate(string $id)
+    {
+        $wallet = Wallet::where('user_id', Auth::id())->findOrFail($id);
+        $wallet->recalculateBalance();
+        $wallet->refresh();
+        return response()->json([
+            'message' => 'Saldo berhasil dihitung ulang.',
+            'wallet'  => $wallet,
+        ]);
+    }
 }

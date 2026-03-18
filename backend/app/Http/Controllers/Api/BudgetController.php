@@ -15,16 +15,20 @@ class BudgetController extends Controller
         $userId = Auth::id();
         $month  = $request->input('month', now()->format('Y-m'));
 
+        // Parse year & month dari "YYYY-MM"
+        [$year, $mon] = array_map('intval', explode('-', $month));
+
         $budgets = Budget::with('category')
             ->where('user_id', $userId)
             ->where('month', $month)
             ->get();
 
-        $budgets->each(function ($budget) use ($month, $userId) {
+        $budgets->each(function ($budget) use ($year, $mon, $userId) {
             $budget->spent = (float) Transaction::where('user_id', $userId)
                 ->where('category_id', $budget->category_id)
                 ->where('type', 'expense')
-                ->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$month])
+                ->whereYear('date', $year)
+                ->whereMonth('date', $mon)
                 ->sum('amount');
         });
 

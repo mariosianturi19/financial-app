@@ -20,10 +20,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me',      [AuthController::class, 'me']);
 
     // Core
-    Route::get('/dashboard',           [DashboardController::class, 'summary']);
-    Route::apiResource('categories',   CategoryController::class);
-    Route::apiResource('wallets',      WalletController::class);
-    Route::apiResource('transactions', TransactionController::class);
+    Route::get('/dashboard',                        [DashboardController::class, 'summary']);
+    Route::apiResource('categories',                CategoryController::class);
+    Route::apiResource('wallets',                   WalletController::class);
+    Route::get('/wallets/{wallet}/recalculate',     [WalletController::class, 'recalculate']);
+    Route::apiResource('transactions',              TransactionController::class);
 
     // Budgets
     Route::get('/budgets',             [BudgetController::class, 'index']);

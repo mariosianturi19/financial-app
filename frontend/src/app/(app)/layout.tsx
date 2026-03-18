@@ -44,24 +44,30 @@ function PageTransition({ children }: { children: React.ReactNode }) {
 /* ── App Layout ─────────────────────────────────────────────── */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated, initFromStorage } = useAuthStore();
+  const { isAuthenticated, isInitializing, initFromStorage } = useAuthStore();
   const { wallets, walletsLoaded, fetchWallets, categories, categoriesLoaded, fetchCategories, refetchWallets } = useAppStore();
 
-  const [checked, setChecked]         = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickForm, setQuickForm]       = useState<TxFormData>(makeEmptyForm());
   const [saving, setSaving]             = useState(false);
 
-  useEffect(() => { initFromStorage(); setChecked(true); }, [initFromStorage]);
-  useEffect(() => { if (checked && !isAuthenticated) router.replace('/login'); }, [checked, isAuthenticated, router]);
+  useEffect(() => {
+    initFromStorage();
+  }, [initFromStorage]);
+
+  useEffect(() => {
+    if (!isInitializing && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isInitializing, isAuthenticated, router]);
 
   /* Pre-load wallets & categories when layout mounts (authenticated) */
   useEffect(() => {
-    if (checked && isAuthenticated) {
-      if (!walletsLoaded)   fetchWallets();
+    if (!isInitializing && isAuthenticated) {
+      if (!walletsLoaded)    fetchWallets();
       if (!categoriesLoaded) fetchCategories();
     }
-  }, [checked, isAuthenticated, walletsLoaded, categoriesLoaded, fetchWallets, fetchCategories]);
+  }, [isInitializing, isAuthenticated, walletsLoaded, categoriesLoaded, fetchWallets, fetchCategories]);
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setShowQuickAdd(true);
   }, []);
 
-  if (!checked || !isAuthenticated) {
+  if (isInitializing || !isAuthenticated) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
