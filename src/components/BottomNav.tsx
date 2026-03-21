@@ -11,12 +11,12 @@ import {
 const PRIMARY_NAV = [
   { href: '/dashboard',    Icon: LayoutDashboard, label: 'Home'    },
   { href: '/transactions', Icon: ArrowLeftRight,  label: 'Txns'    },
-  { href: '/analytics',    Icon: TrendingUp,      label: 'Charts'  },
+  { href: '/wallets',      Icon: Wallet,          label: 'Wallets' },
   { href: '/budgets',      Icon: Target,          label: 'Budgets' },
 ];
 
 const MORE_NAV = [
-  { href: '/wallets',    Icon: Wallet,    label: 'Wallets',      color: '#34d399' },
+  { href: '/analytics',  Icon: TrendingUp,label: 'Analytics',    color: '#34d399' },
   { href: '/categories', Icon: Tag,       label: 'Categories',   color: '#fbbf24' },
   { href: '/forecast',   Icon: Zap,       label: 'Forecasting',  color: '#7c6ff7' },
   { href: '/insights',   Icon: Lightbulb, label: 'Smart Insights', color: '#fb7185' },
