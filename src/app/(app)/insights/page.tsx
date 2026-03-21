@@ -157,9 +157,9 @@ export default function InsightsPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '7px 14px', borderRadius: 99,
-                background: active ? 'var(--accent-violet-dim)' : 'var(--bg-overlay)',
-                border: `1px solid ${active ? 'rgba(124,111,247,0.4)' : 'var(--border-subtle)'}`,
-                color: active ? 'var(--accent-violet-soft)' : 'var(--text-secondary)',
+                background: active ? 'var(--accent-cyan-dim)' : 'var(--bg-overlay)',
+                border: `1px solid ${active ? 'rgba(14,165,233,0.4)' : 'var(--border-subtle)'}`,
+                color: active ? 'var(--accent-cyan-soft)' : 'var(--text-secondary)',
                 cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
                 fontFamily: 'var(--font-body)', transition: 'all 0.15s',
               }}
@@ -167,7 +167,7 @@ export default function InsightsPage() {
               <span style={{ fontSize: 13 }}>{emoji}</span>
               {label}
               {key !== 'all' && count > 0 && (
-                <span style={{ background: active ? 'rgba(124,111,247,0.25)' : 'var(--bg-hover)', padding: '1px 7px', borderRadius: 99, fontSize: 10.5 }}>
+                <span style={{ background: active ? 'rgba(14,165,233,0.25)' : 'var(--bg-hover)', padding: '1px 7px', borderRadius: 99, fontSize: 10.5 }}>
                   {count}
                 </span>
               )}

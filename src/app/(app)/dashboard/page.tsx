@@ -96,7 +96,7 @@ export default function DashboardPage() {
     name:  e.category?.name  ?? 'Other',
     value: e.total,
     icon:  e.category?.icon  ?? '📂',
-    color: e.category?.color ?? '#7c6ff7',
+    color: e.category?.color ?? '#0ea5e9',
   }));
   const totalExpensePie = donutData.reduce((s, d) => s + d.value, 0);
   const netSavings = summary.total_income - summary.total_expense;
@@ -184,14 +184,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Savings rate */}
-          <div className="card" style={{ padding: '20px 22px', background: 'linear-gradient(135deg, rgba(124,111,247,0.1) 0%, rgba(124,111,247,0.04) 100%)', borderColor: 'rgba(124,111,247,0.2)' }}>
+          <div className="card" style={{ padding: '20px 22px', background: 'linear-gradient(135deg, rgba(14,165,233,0.1) 0%, rgba(14,165,233,0.04) 100%)', borderColor: 'rgba(14,165,233,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(124,111,247,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={15} style={{ color: 'var(--accent-violet-soft)' }} />
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(14,165,233,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={15} style={{ color: 'var(--accent-cyan-soft)' }} />
               </div>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent-violet-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Savings Rate</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent-cyan-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Savings Rate</span>
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: savingsRate >= 0 ? 'var(--accent-violet-soft)' : '#fb7185', letterSpacing: '-0.03em', lineHeight: 1 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: savingsRate >= 0 ? 'var(--accent-cyan-soft)' : '#f43f5e', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {savingsRate}%
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5 }}>
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                 <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>Last 5 activities</p>
               </div>
               <Link href="/transactions" style={{ textDecoration: 'none' }}>
-                <motion.div whileHover={{ x: 3 }} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--accent-violet)', fontWeight: 600 }}>
+                <motion.div whileHover={{ x: 3 }} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--accent-cyan)', fontWeight: 600 }}>
                   View all <ArrowRight size={13} />
                 </motion.div>
               </Link>
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                 const isIncome = tx.type === 'income';
                 return (
                   <motion.div key={tx.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.06 }} className="tx-row" style={{ margin: '0 12px', borderRadius: 12, padding: '10px 12px' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: (tx.category?.color ?? '#7c6ff7') + '20', border: `1px solid ${(tx.category?.color ?? '#7c6ff7')}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: (tx.category?.color ?? '#0ea5e9') + '20', border: `1px solid ${(tx.category?.color ?? '#0ea5e9')}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
                       {tx.category?.icon ?? (isIncome ? '📈' : '📉')}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -285,10 +285,10 @@ export default function DashboardPage() {
         <motion.div variants={fadeUp} className="col-12">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {[
-              { href: '/wallets',   icon: '💳', label: 'Wallets',   color: 'rgba(96,165,250,0.1)',   border: 'rgba(96,165,250,0.2)',   text: '#60a5fa' },
-              { href: '/budgets',   icon: '🎯', label: 'Budgets',   color: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.2)',   text: '#fbbf24' },
-              { href: '/analytics', icon: '📊', label: 'Analytics', color: 'rgba(52,211,153,0.1)',   border: 'rgba(52,211,153,0.2)',   text: '#34d399' },
-              { href: '/insights',  icon: '💡', label: 'Insights',  color: 'rgba(124,111,247,0.1)',  border: 'rgba(124,111,247,0.2)',  text: 'var(--accent-violet-soft)' },
+              { href: '/wallets',   icon: '💳', label: 'Wallets',   color: 'rgba(14,165,233,0.1)',  border: 'rgba(14,165,233,0.2)',  text: 'var(--accent-cyan-soft)' },
+              { href: '/budgets',   icon: '🎯', label: 'Budgets',   color: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  text: 'var(--accent-amber)' },
+              { href: '/analytics', icon: '📊', label: 'Analytics', color: 'rgba(20,184,166,0.1)',  border: 'rgba(20,184,166,0.2)',  text: 'var(--accent-teal)' },
+              { href: '/insights',  icon: '💡', label: 'Insights',  color: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.2)',  text: 'var(--accent-emerald-soft)' },
             ].map(({ href, icon, label, color, border, text }) => (
               <Link key={href} href={href} style={{ textDecoration: 'none' }}>
                 <motion.div whileHover={{ y: -4, scale: 1.02 }} whileTap={{ scale: 0.96 }} transition={{ type: 'spring', damping: 20, stiffness: 400 }} style={{ padding: '18px 16px', background: color, border: `1px solid ${border}`, borderRadius: 18, cursor: 'pointer', textAlign: 'center' }}>
@@ -303,15 +303,15 @@ export default function DashboardPage() {
         {/* AI Banner */}
         <motion.div variants={fadeUp} className="col-12">
           <Link href="/insights" style={{ textDecoration: 'none' }}>
-            <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.99 }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 22px', borderRadius: 18, background: 'linear-gradient(135deg, rgba(124,111,247,0.12) 0%, rgba(167,139,250,0.06) 100%)', border: '1px solid rgba(124,111,247,0.25)', cursor: 'pointer' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: 'var(--grad-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-violet)', flexShrink: 0 }}>
+            <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.99 }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 22px', borderRadius: 18, background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(20,184,166,0.06) 100%)', border: '1px solid rgba(14,165,233,0.25)', cursor: 'pointer' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 13, background: 'var(--grad-teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-teal)', flexShrink: 0 }}>
                 <Sparkles size={20} style={{ color: '#fff' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3, letterSpacing: '-0.01em' }}>Smart Insights active</p>
                 <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>View AI-powered financial recommendations tailored to your data</p>
               </div>
-              <ArrowRight size={16} style={{ color: 'var(--accent-violet)', flexShrink: 0 }} />
+              <ArrowRight size={16} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
             </motion.div>
           </Link>
         </motion.div>

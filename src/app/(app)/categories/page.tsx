@@ -8,11 +8,12 @@ import { Category } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
+import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal';
 import { toast } from 'sonner';
 
-const COLORS = ['#7c6ff7','#34d399','#fb7185','#fbbf24','#60a5fa','#f472b6','#a78bfa','#2dd4bf','#f97316','#84cc16','#e879f9','#94a3b8'];
+const COLORS = ['#0ea5e9','#34d399','#f43f5e','#f59e0b','#60a5fa','#f472b6','#a78bfa','#2dd4bf','#f97316','#84cc16','#e879f9','#94a3b8'];
 const ICONS  = ['🍔','☕','🚗','🏠','💊','🎬','👔','📚','✈️','💪','🎮','🛒','💡','📱','🎵','🐾','💰','📈','🏦','💳','⚡','🎁','💼','💻','🛍️','✨','🏋️','🎯','🔧','📷'];
-const emptyForm = { name: '', type: 'expense' as 'income' | 'expense', color: '#7c6ff7', icon: '🛒' };
+const emptyForm = { name: '', type: 'expense' as 'income' | 'expense', color: '#0ea5e9', icon: '🛒' };
 
 function CategoryCard({ cat, index, onEdit, onDelete }: { cat: Category; index: number; onEdit: (cat: Category) => void; onDelete: (id: number) => void }) {
   const [hov, setHov] = useState(false);
@@ -57,7 +58,7 @@ function CategoryCard({ cat, index, onEdit, onDelete }: { cat: Category; index: 
 
       <div style={{ display: 'flex', gap: 5, opacity: hov ? 1 : 0, transition: 'opacity 0.15s', flexShrink: 0 }}>
         <button onClick={() => onEdit(cat)} style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent-violet-soft)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,111,247,0.4)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent-cyan-soft)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,165,233,0.4)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }}>
           <Edit2 size={13} />
         </button>
@@ -141,6 +142,8 @@ export default function CategoriesPage() {
   const [editCat, setEditCat]     = useState<Category | null>(null);
   const [editForm, setEditForm]   = useState({ ...emptyForm });
   const [editSaving, setEditSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [deleting, setDeleting]         = useState(false);
 
   useEffect(() => {
     if (!categoriesLoaded) fetchCategories().finally(() => setLoading(false));
@@ -153,7 +156,7 @@ export default function CategoriesPage() {
       const res = await api.post('/categories', addForm);
       setCategories([...categories, res.data]);
       setShowAdd(false); setAddForm({ ...emptyForm });
-      toast.success('Category added!');
+      toast.success('Category added!', { style: { borderLeft: '4px solid var(--accent-emerald)' } });
     } catch { toast.error('Failed to add category.'); } finally { setAddSaving(false); }
   };
 
@@ -165,19 +168,21 @@ export default function CategoriesPage() {
         : { name: editForm.name, type: editForm.type, icon: editForm.icon, color: editForm.color };
       const res = await api.put(`/categories/${editCat.id}`, payload);
       updateCategoryInStore(res.data); setEditCat(null);
-      toast.success('Category updated!');
+      toast.success('Category updated!', { style: { borderLeft: '4px solid var(--accent-cyan)' } });
     } catch { toast.error('Failed to update.'); } finally { setEditSaving(false); }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this category? Transactions will not be deleted.')) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/categories/${id}`); removeCategoryFromStore(id);
-      toast.success('Category deleted.');
+      await api.delete(`/categories/${deleteTarget.id}`); removeCategoryFromStore(deleteTarget.id);
+      setDeleteTarget(null);
+      toast.error('Category deleted.', { style: { borderLeft: '4px solid var(--accent-rose)' } });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete.';
       toast.error(msg);
-    }
+    } finally { setDeleting(false); }
   };
 
   const openEdit = (cat: Category) => { setEditCat(cat); setEditForm({ name: cat.name, type: cat.type, color: cat.color, icon: cat.icon ?? '🏷️' }); };
@@ -200,8 +205,8 @@ export default function CategoriesPage() {
       </div>
 
       {/* Info banner */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderRadius: 14, background: 'rgba(124,111,247,0.07)', border: '1px solid rgba(124,111,247,0.18)' }}>
-        <Lock size={14} style={{ color: 'var(--accent-violet)', flexShrink: 0, marginTop: 2 }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderRadius: 14, background: 'rgba(14,165,233,0.07)', border: '1px solid rgba(14,165,233,0.18)' }}>
+        <Lock size={14} style={{ color: 'var(--accent-cyan)', flexShrink: 0, marginTop: 2 }} />
         <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           <strong style={{ color: 'var(--text-primary)' }}>Default</strong> categories are provided automatically. You can change their icon & color, or add your own custom categories.
         </p>
@@ -229,7 +234,7 @@ export default function CategoriesPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {income.map((cat, i) => <CategoryCard key={cat.id} cat={cat} index={i} onEdit={openEdit} onDelete={handleDelete} />)}
+                {income.map((cat, i) => <CategoryCard key={cat.id} cat={cat} index={i} onEdit={openEdit} onDelete={(id) => { const c = categories.find(c => c.id === id); if (c) setDeleteTarget(c); }} />)}
               </div>
             </div>
           )}
@@ -246,7 +251,7 @@ export default function CategoriesPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {expense.map((cat, i) => <CategoryCard key={cat.id} cat={cat} index={i} onEdit={openEdit} onDelete={handleDelete} />)}
+                {expense.map((cat, i) => <CategoryCard key={cat.id} cat={cat} index={i} onEdit={openEdit} onDelete={(id) => { const c = categories.find(c => c.id === id); if (c) setDeleteTarget(c); }} />)}
               </div>
             </div>
           )}
@@ -256,9 +261,19 @@ export default function CategoriesPage() {
       <Modal open={showAdd} onClose={() => { setShowAdd(false); setAddForm({ ...emptyForm }); }} title="Add Category" subtitle="Create your own custom category">
         <CategoryForm form={addForm} setForm={setAddForm} isDefault={false} onSubmit={handleAdd} saving={addSaving} submitLabel="Save Category" onCancel={() => { setShowAdd(false); setAddForm({ ...emptyForm }); }} />
       </Modal>
-      <Modal open={!!editCat} onClose={() => setEditCat(null)} title={editCat?.is_default ? 'Edit Appearance' : 'Edit Category'} subtitle={editCat?.is_default ? 'Only icon and color can be changed' : 'Update category details'}>
+      <Modal open={!!(editCat)} onClose={() => setEditCat(null)} title={editCat?.is_default ? 'Edit Appearance' : 'Edit Category'} subtitle={editCat?.is_default ? 'Only icon and color can be changed' : 'Update category details'}>
         <CategoryForm form={editForm} setForm={setEditForm} isDefault={editCat?.is_default} onSubmit={handleEdit} saving={editSaving} submitLabel="Save Changes" onCancel={() => setEditCat(null)} />
       </Modal>
+
+      <DeleteConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Category?"
+        description="Menghapus kategori ini tidak akan menghapus transaksi, namun transaksi terkait tidak akan memiliki kategori."
+        itemName={deleteTarget?.name}
+      />
     </div>
   );
 }

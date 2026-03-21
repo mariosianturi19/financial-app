@@ -18,7 +18,7 @@ const PRIMARY_NAV = [
 const MORE_NAV = [
   { href: '/analytics',  Icon: TrendingUp,label: 'Analytics',    color: '#34d399' },
   { href: '/categories', Icon: Tag,       label: 'Categories',   color: '#fbbf24' },
-  { href: '/forecast',   Icon: Zap,       label: 'Forecasting',  color: '#7c6ff7' },
+  { href: '/forecast',   Icon: Zap,       label: 'Forecasting',  color: '#0ea5e9' },
   { href: '/insights',   Icon: Lightbulb, label: 'Smart Insights', color: '#fb7185' },
 ];
 
@@ -50,7 +50,7 @@ export default function BottomNav() {
       <div style={{
         position: 'fixed', bottom: 'var(--bottom-nav-height)', left: 0, right: 0,
         zIndex: 50,
-        background: 'rgba(10,10,18,0.97)',
+        background: 'rgba(6,11,22,0.98)',
         backdropFilter: 'blur(32px) saturate(180%)',
         WebkitBackdropFilter: 'blur(32px) saturate(180%)',
         borderTop: '1px solid var(--border-default)',
@@ -58,7 +58,7 @@ export default function BottomNav() {
         padding: '6px 0 12px',
         transform: open ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        boxShadow: '0 -12px 40px rgba(0,0,0,0.5)',
+        boxShadow: '0 -12px 40px rgba(0,0,0,0.6)',
       }}>
         {/* Handle bar */}
         <div style={{ width: 36, height: 4, borderRadius: 99, background: 'var(--border-default)', margin: '8px auto 18px' }} />
@@ -115,7 +115,7 @@ export default function BottomNav() {
       {/* Bottom nav bar */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-        background: 'rgba(7,7,13,0.90)',
+        background: 'rgba(5,10,21,0.92)',
         backdropFilter: 'blur(28px) saturate(180%)',
         WebkitBackdropFilter: 'blur(28px) saturate(180%)',
         borderTop: '1px solid var(--border-subtle)',
@@ -130,7 +130,7 @@ export default function BottomNav() {
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               gap: 4, textDecoration: 'none',
-              color: active ? 'var(--accent-violet-soft)' : 'var(--text-tertiary)',
+              color: active ? 'var(--accent-cyan-soft)' : 'var(--text-tertiary)',
               transition: 'color 0.15s',
               position: 'relative',
               paddingTop: 8,
@@ -139,15 +139,15 @@ export default function BottomNav() {
                 <div style={{
                   position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
                   width: 32, height: 2,
-                  background: 'var(--grad-violet)',
+                  background: 'var(--grad-cyan)',
                   borderRadius: '0 0 4px 4px',
-                  boxShadow: '0 0 12px rgba(124,111,247,0.6)',
+                  boxShadow: '0 0 12px rgba(14,165,233,0.6)',
                 }} />
               )}
               <div style={{
                 width: 36, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderRadius: 9,
-                background: active ? 'rgba(124,111,247,0.15)' : 'transparent',
+                background: active ? 'rgba(14,165,233,0.15)' : 'transparent',
                 transition: 'background 0.15s',
               }}>
                 <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
@@ -169,7 +169,7 @@ export default function BottomNav() {
             flex: 1, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
             gap: 4, background: 'none', border: 'none', cursor: 'pointer',
-            color: (moreActive || open) ? 'var(--accent-violet-soft)' : 'var(--text-tertiary)',
+            color: (moreActive || open) ? 'var(--accent-cyan-soft)' : 'var(--text-tertiary)',
             transition: 'color 0.15s',
             position: 'relative',
             paddingTop: 8,
@@ -180,15 +180,15 @@ export default function BottomNav() {
             <div style={{
               position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
               width: 32, height: 2,
-              background: 'var(--grad-violet)',
+              background: 'var(--grad-cyan)',
               borderRadius: '0 0 4px 4px',
-              boxShadow: '0 0 12px rgba(124,111,247,0.6)',
+              boxShadow: '0 0 12px rgba(14,165,233,0.6)',
             }} />
           )}
           <div style={{
             width: 36, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 9,
-            background: (moreActive || open) ? 'rgba(124,111,247,0.15)' : 'transparent',
+            background: (moreActive || open) ? 'rgba(14,165,233,0.15)' : 'transparent',
             transition: 'background 0.15s, transform 0.2s',
             transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
           }}>

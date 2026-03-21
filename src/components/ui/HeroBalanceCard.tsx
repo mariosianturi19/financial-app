@@ -14,7 +14,7 @@ interface HeroBalanceCardProps {
   userName: string;
 }
 
-function Sparkline({ data, width = 120, height = 36, color = '#7c6ff7' }: {
+function Sparkline({ data, width = 120, height = 36, color = '#0ea5e9' }: {
   data: number[]; width?: number; height?: number; color?: string;
 }) {
   if (!data.length) return null;
@@ -110,7 +110,7 @@ export default function HeroBalanceCard({
         padding: '28px 28px 24px',
         background: 'var(--bg-elevated)',
         border: '1px solid var(--border-accent)',
-        boxShadow: '0 0 0 1px rgba(124,111,247,0.08), 0 20px 60px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)',
+        boxShadow: '0 0 0 1px rgba(14,165,233,0.08), 0 20px 60px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)',
         transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s ease',
         willChange: 'transform', cursor: 'default',
       }}
@@ -119,8 +119,8 @@ export default function HeroBalanceCard({
       <div aria-hidden style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
         background: `
-          radial-gradient(ellipse at 10% 20%, rgba(124,111,247,0.18) 0%, transparent 55%),
-          radial-gradient(ellipse at 90% 80%, rgba(167,139,250,0.10) 0%, transparent 50%),
+          radial-gradient(ellipse at 10% 20%, rgba(14,165,233,0.18) 0%, transparent 55%),
+          radial-gradient(ellipse at 90% 80%, rgba(20,184,166,0.12) 0%, transparent 50%),
           radial-gradient(ellipse at 70% 10%, rgba(52,211,153,0.06) 0%, transparent 45%)
         `,
       }} />
@@ -143,7 +143,7 @@ export default function HeroBalanceCard({
         {/* Greeting row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-violet-soft)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-cyan-soft)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
               {greeting}, {firstName} 👋
             </p>
             <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontWeight: 400 }}>
@@ -152,11 +152,11 @@ export default function HeroBalanceCard({
           </div>
           <div style={{
             width: 40, height: 40, borderRadius: 13,
-            background: 'var(--accent-violet-dim)', border: '1px solid var(--border-accent)',
+            background: 'var(--accent-cyan-dim)', border: '1px solid var(--border-accent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(124,111,247,0.2)',
+            boxShadow: '0 4px 16px rgba(14,165,233,0.2)',
           }}>
-            <Wallet size={18} style={{ color: 'var(--accent-violet)' }} />
+            <Wallet size={18} style={{ color: 'var(--accent-cyan)' }} />
           </div>
         </div>
 

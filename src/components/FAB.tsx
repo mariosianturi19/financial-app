@@ -40,8 +40,8 @@ export default function FAB({ onAddTransaction, onAddWallet, onAddBudget }: FABP
       icon: <ArrowLeftRight size={17} />,
       label: 'Add Transaction',
       onClick: () => { setOpen(false); onAddTransaction(); },
-      color: '#7c6ff7',
-      bg:    'rgba(124,111,247,0.15)',
+      color: '#0ea5e9',
+      bg:    'rgba(14,165,233,0.15)',
     },
     ...(onAddWallet ? [{
       icon: <Wallet size={17} />,
@@ -130,11 +130,11 @@ export default function FAB({ onAddTransaction, onAddWallet, onAddBudget }: FABP
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           style={{
             width: 54, height: 54, borderRadius: 17, border: 'none',
-            background: open ? 'var(--bg-overlay)' : 'var(--grad-violet)',
+            background: open ? 'var(--bg-overlay)' : 'var(--grad-finapp)',
             color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', flexShrink: 0,
-            boxShadow: open ? 'var(--shadow-md)' : 'var(--shadow-violet-lg)',
+            boxShadow: open ? 'var(--shadow-md)' : '0 8px 28px rgba(14,165,233,0.45)',
             transition: 'background 0.2s, box-shadow 0.2s',
             zIndex: 47, outline: 'none',
           }}

@@ -76,8 +76,8 @@ export default function AmountInput({
     && !exceedsBalance;
 
   /* ── Colors based on state ─────────────────────────────────── */
-  let borderColor = focused ? 'var(--accent-violet)' : 'var(--border-default)';
-  let shadowColor = focused ? '0 0 0 3px var(--accent-violet-dim)' : 'none';
+  let borderColor = focused ? 'var(--accent-cyan)' : 'var(--border-default)';
+  let shadowColor = focused ? '0 0 0 3px var(--accent-cyan-dim)' : 'none';
 
   if (hasAmount && hasWallet && isExpense) {
     if (exceedsBalance) {
@@ -87,7 +87,7 @@ export default function AmountInput({
       borderColor = 'var(--accent-amber)';
       shadowColor = '0 0 0 3px rgba(251,191,36,0.12)';
     } else if (hasAmount) {
-      borderColor = focused ? 'var(--accent-violet)' : 'var(--border-default)';
+      borderColor = focused ? 'var(--accent-cyan)' : 'var(--border-default)';
     }
   }
 
@@ -99,7 +99,7 @@ export default function AmountInput({
         <div style={{
           position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
           fontSize: 14, fontWeight: 600,
-          color: focused ? 'var(--accent-violet)' : 'var(--text-tertiary)',
+          color: focused ? 'var(--accent-cyan)' : 'var(--text-tertiary)',
           transition: 'color 0.2s',
           pointerEvents: 'none',
           userSelect: 'none',

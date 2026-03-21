@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Filter, X, ChevronDown, ArrowUpRight, ArrowDownRight, SlidersHorizontal } from 'lucide-react';
+import { Plus, Search, Filter, X, ChevronDown, ArrowUpRight, ArrowDownRight, SlidersHorizontal, Edit2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import { Transaction } from '@/types';
@@ -10,6 +10,7 @@ import { useAppStore } from '@/store/appStore';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import TxForm, { TxFormData } from '@/components/ui/TxForm';
+import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal';
 import { toast } from 'sonner';
 import NumberFlow from '@number-flow/react';
 
@@ -52,9 +53,9 @@ function groupByDate(txList: Transaction[]): { label: string; items: Transaction
   }));
 }
 
-function TxRow({ tx, onEdit }: { tx: Transaction; onEdit: () => void }) {
+function TxRow({ tx, onEdit, onDelete }: { tx: Transaction; onEdit: () => void; onDelete: () => void }) {
   const isIncome = tx.type === 'income';
-  const color    = tx.category?.color ?? '#7c6ff7';
+  const color    = tx.category?.color ?? '#0ea5e9';
 
   return (
     <motion.div
@@ -62,41 +63,96 @@ function TxRow({ tx, onEdit }: { tx: Transaction; onEdit: () => void }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -12 }}
-      onClick={onEdit}
       className="tx-row"
-      style={{ margin: '0 8px', borderRadius: 13 }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 11,
+        padding: '11px 14px', margin: '0 6px', borderRadius: 13,
+      }}
     >
+      {/* Category icon */}
       <div style={{
-        width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+        width: 40, height: 40, borderRadius: 12, flexShrink: 0,
         background: color + '1e', border: `1px solid ${color}33`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-        transition: 'transform 0.2s var(--ease-spring)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
       }}>
         {tx.category?.icon ?? (isIncome ? '📈' : '📉')}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>
+
+      {/* Middle — name + meta */}
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        <p style={{
+          fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          marginBottom: 3,
+        }}>
           {tx.description || tx.category?.name || '—'}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatDate(tx.date)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+            {formatDate(tx.date)}
+          </span>
           {tx.wallet && (
-            <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', background: 'var(--bg-overlay)', padding: '1px 8px', borderRadius: 99, border: '1px solid var(--border-subtle)' }}>
+            <span style={{
+              fontSize: 10.5, color: 'var(--text-tertiary)',
+              background: 'var(--bg-overlay)', padding: '1px 7px',
+              borderRadius: 99, border: '1px solid var(--border-subtle)',
+              flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              maxWidth: 72,
+            }}>
               {tx.wallet.name}
             </span>
           )}
           {tx.category && (
-            <span style={{ fontSize: 10.5, padding: '1px 8px', borderRadius: 99, background: color + '18', color, border: `1px solid ${color}30` }}>
-              {tx.category.icon} {tx.category.name}
+            <span style={{
+              fontSize: 10.5, padding: '1px 7px', borderRadius: 99,
+              background: color + '18', color, border: `1px solid ${color}30`,
+              flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              maxWidth: 80,
+            }}>
+              {tx.category.name}
             </span>
           )}
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        {isIncome ? <ArrowUpRight size={14} style={{ color: '#34d399' }} /> : <ArrowDownRight size={14} style={{ color: '#fb7185' }} />}
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', color: isIncome ? '#34d399' : '#fb7185' }}>
-          {formatRupiah(tx.amount)}
-        </span>
+
+      {/* Right: amount + action buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+        {/* Amount */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          {isIncome
+            ? <ArrowUpRight size={13} style={{ color: '#34d399' }} />
+            : <ArrowDownRight size={13} style={{ color: '#fb7185' }} />}
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: 13.5, fontWeight: 700,
+            letterSpacing: '-0.01em',
+            color: isIncome ? '#34d399' : '#fb7185',
+          }}>
+            {formatRupiah(tx.amount)}
+          </span>
+        </div>
+        {/* Action buttons — always visible */}
+        <div style={{ display: 'flex', gap: 5 }}>
+          {[
+            { Icon: Edit2,  fn: onEdit,   hoverColor: 'var(--accent-cyan)' },
+            { Icon: Trash2, fn: onDelete, hoverColor: '#f43f5e' },
+          ].map(({ Icon, fn, hoverColor }, k) => (
+            <button key={k}
+              onClick={(e) => { e.stopPropagation(); fn(); }}
+              style={{
+                width: 34, height: 34, borderRadius: 10,
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-overlay)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: 'var(--text-secondary)',
+                transition: 'all 0.15s', flexShrink: 0,
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = hoverColor; (e.currentTarget as HTMLElement).style.borderColor = hoverColor + '66'; (e.currentTarget as HTMLElement).style.background = hoverColor + '15'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; (e.currentTarget as HTMLElement).style.background = 'var(--bg-overlay)'; }}
+            >
+              <Icon size={14} />
+            </button>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
@@ -119,6 +175,8 @@ export default function TransactionsPage() {
   const [filterType, setFilterType]   = useState<'all' | 'income' | 'expense'>('all');
   const [filterWallet, setFilterWallet] = useState('');
   const [showFilter, setShowFilter]   = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
+  const [deleting, setDeleting]         = useState(false);
 
   useEffect(() => {
     if (!walletsLoaded)    fetchWallets();
@@ -147,7 +205,7 @@ export default function TransactionsPage() {
       const res = await api.post('/transactions', addForm);
       setTransactions([res.data, ...transactions]);
       setShowAdd(false); setAddForm(makeEmptyForm());
-      toast.success('Transaction saved!');
+      toast.success('Transaction saved!', { style: { borderLeft: '4px solid var(--accent-emerald)' } });
       fetchWallets();
     } catch { toast.error('Failed to save.'); } finally { setSaving(false); }
   };
@@ -158,20 +216,22 @@ export default function TransactionsPage() {
       const res = await api.put(`/transactions/${editTx.id}`, editForm);
       setTransactions(transactions.map((t) => t.id === editTx.id ? res.data : t));
       setEditTx(null);
-      toast.success('Transaction updated!');
+      toast.success('Transaction updated!', { style: { borderLeft: '4px solid var(--accent-cyan)' } });
       fetchWallets();
     } catch { toast.error('Failed to save.'); } finally { setEditSaving(false); }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this transaction?')) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/transactions/${id}`);
-      setTransactions(transactions.filter((t) => t.id !== id));
+      await api.delete(`/transactions/${deleteTarget.id}`);
+      setTransactions(transactions.filter((t) => t.id !== deleteTarget.id));
       setEditTx(null);
-      toast.success('Transaction deleted.');
+      setDeleteTarget(null);
+      toast.error('Transaction deleted.', { style: { borderLeft: '4px solid var(--accent-rose)' } });
       fetchWallets();
-    } catch { toast.error('Failed to delete.'); }
+    } catch { toast.error('Failed to delete.'); } finally { setDeleting(false); }
   };
 
   const openEdit = (tx: Transaction) => {
@@ -237,10 +297,10 @@ export default function TransactionsPage() {
             </button>
           )}
         </div>
-        <button onClick={() => setShowFilter(!showFilter)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px', height: 44, borderRadius: 12, background: hasFilter ? 'var(--accent-violet-dim)' : 'var(--bg-overlay)', border: `1px solid ${hasFilter ? 'rgba(124,111,247,0.5)' : 'var(--border-subtle)'}`, color: hasFilter ? 'var(--accent-violet-soft)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
+        <button onClick={() => setShowFilter(!showFilter)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px', height: 44, borderRadius: 12, background: hasFilter ? 'var(--accent-cyan-dim)' : 'var(--bg-overlay)', border: `1px solid ${hasFilter ? 'rgba(14,165,233,0.5)' : 'var(--border-subtle)'}`, color: hasFilter ? 'var(--accent-cyan-soft)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
           <SlidersHorizontal size={14} />
           <span>Filter</span>
-          {hasFilter && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-violet)', flexShrink: 0 }} />}
+          {hasFilter && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-cyan)', flexShrink: 0 }} />}
         </button>
       </div>
 
@@ -293,7 +353,7 @@ export default function TransactionsPage() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 6 }}>
-                  {group.items.map((tx) => <TxRow key={tx.id} tx={tx} onEdit={() => openEdit(tx)} />)}
+                  {group.items.map((tx) => <TxRow key={tx.id} tx={tx} onEdit={() => openEdit(tx)} onDelete={() => setDeleteTarget(tx)} />)}
                 </div>
                 <div style={{ height: 1, background: 'var(--border-subtle)', margin: '6px 18px 4px' }} />
               </div>
@@ -317,12 +377,23 @@ export default function TransactionsPage() {
 
       {/* Edit Modal */}
       <Modal open={!!editTx} onClose={() => setEditTx(null)} title="Edit Transaction" footer={
-        <button onClick={() => { if (editTx) handleDelete(editTx.id); }} className="btn-danger" style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => { if (editTx) setDeleteTarget(editTx); }} className="btn-danger" style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}>
           Delete Transaction
         </button>
       }>
         <TxForm form={editForm} setForm={setEditForm} wallets={wallets} categories={categories} onSubmit={handleEdit} saving={editSaving} submitLabel="Save Changes" onCancel={() => setEditTx(null)} editingTxCurrentAmount={editOriginalAmount} />
       </Modal>
+
+      {/* Delete Confirm Modal */}
+      <DeleteConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Transaction?"
+        description="Menghapus transaksi ini akan mempengaruhi saldo dompet terkait. Tindakan ini tidak bisa dibatalkan."
+        itemName={deleteTarget?.description || deleteTarget?.category?.name}
+      />
     </div>
   );
 }

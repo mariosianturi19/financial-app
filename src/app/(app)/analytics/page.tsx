@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import NumberFlow from '@number-flow/react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line,
 } from 'recharts';
 import api from '@/lib/api';
-import { AdvancedAnalytics } from '@/types';
+import { AdvancedAnalytics, MonthlyData } from '@/types';
 import { formatRupiah } from '@/lib/utils';
 
 const DAY_SHORT: Record<string, string> = {
@@ -19,6 +20,7 @@ const DAY_SHORT: Record<string, string> = {
 const formatY = (v: number) =>
   v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${(v / 1_000).toFixed(0)}K` : String(v);
 
+/* ── Shared chart tooltip ── */
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const nameMap: Record<string, string> = { income: 'Income', expense: 'Expenses', savings: 'Savings', rate: 'Rate', net_worth: 'Net Worth', pengeluaran: 'Expenses', avg: 'Avg Spend' };
@@ -59,6 +61,7 @@ function AnalyticsSkeleton() {
       <div className="content-grid-3">
         {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 20 }} />)}
       </div>
+      <div style={{ height: 52, borderRadius: 16 }} className="skeleton" />
       <div className="bento-grid">
         <div className="col-12 skeleton" style={{ height: 240, borderRadius: 20 }} />
         <div className="col-6 skeleton" style={{ height: 200, borderRadius: 20 }} />
@@ -68,25 +71,154 @@ function AnalyticsSkeleton() {
   );
 }
 
+/* ── Month filter carousel ── */
+function MonthFilterCarousel({
+  months,
+  selected,
+  onSelect,
+}: {
+  months: MonthlyData[];
+  selected: string | null;        // month_key e.g. "2025-01"
+  onSelect: (key: string | null) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (dir: 'left' | 'right') => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: dir === 'left' ? -160 : 160, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Scroll buttons */}
+      <button onClick={() => scroll('left')}
+        style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 2, width: 32, height: 32, borderRadius: 10, background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+        <ChevronLeft size={15} />
+      </button>
+      <button onClick={() => scroll('right')}
+        style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 2, width: 32, height: 32, borderRadius: 10, background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+        <ChevronRight size={15} />
+      </button>
+
+      {/* Scrollable pill list */}
+      <div ref={scrollRef} style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', padding: '6px 40px', msOverflowStyle: 'none' }}>
+        {/* "All months" pill */}
+        <button
+          onClick={() => onSelect(null)}
+          style={{
+            flexShrink: 0, padding: '7px 16px', borderRadius: 99, fontSize: 12.5, fontWeight: 600,
+            fontFamily: 'var(--font-body)', cursor: 'pointer', whiteSpace: 'nowrap',
+            background: selected === null ? 'var(--grad-finapp)' : 'var(--bg-overlay)',
+            border: `1px solid ${selected === null ? 'transparent' : 'var(--border-subtle)'}`,
+            color: selected === null ? '#fff' : 'var(--text-secondary)',
+            boxShadow: selected === null ? '0 4px 16px rgba(14,165,233,0.35)' : 'none',
+            transition: 'all 0.18s',
+          }}
+        >
+          All Months
+        </button>
+
+        {months.map((m) => {
+          const active = selected === m.month_key;
+          const isPositive = m.savings >= 0;
+          return (
+            <motion.button
+              key={m.month_key}
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => onSelect(m.month_key)}
+              style={{
+                flexShrink: 0, padding: '7px 16px', borderRadius: 99, fontSize: 12.5, fontWeight: 600,
+                fontFamily: 'var(--font-body)', cursor: 'pointer', whiteSpace: 'nowrap',
+                background: active ? 'var(--bg-elevated)' : 'var(--bg-overlay)',
+                border: `1px solid ${active ? 'rgba(14,165,233,0.5)' : 'var(--border-subtle)'}`,
+                color: active ? 'var(--accent-cyan-soft)' : 'var(--text-secondary)',
+                boxShadow: active ? '0 2px 12px rgba(14,165,233,0.2), inset 0 0 0 1px rgba(14,165,233,0.15)' : 'none',
+                transition: 'all 0.15s',
+                position: 'relative',
+              }}
+            >
+              {m.month.length > 8 ? m.month.slice(0, 3) + ' ' + m.month.split(' ')[1] : m.month}
+              {/* Savings dot */}
+              <span style={{
+                display: 'inline-block', width: 5, height: 5, borderRadius: '50%', verticalAlign: 'middle',
+                background: isPositive ? '#34d399' : '#f43f5e',
+                marginLeft: 5, marginBottom: 1,
+              }} />
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Single month spotlight card ── */
+function MonthSpotlight({ month }: { month: MonthlyData }) {
+  const isPositive = month.savings >= 0;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="card"
+      style={{
+        padding: '20px 24px',
+        background: 'linear-gradient(135deg, #060d1b 0%, #0d1628 100%)',
+        borderColor: 'var(--border-accent)',
+        position: 'relative', overflow: 'hidden',
+      }}
+    >
+      <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 14 }}>{month.month} — Breakdown</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 16 }}>
+          {[
+            { label: 'Income',   value: month.income,       color: '#34d399' },
+            { label: 'Expenses', value: month.expense,      color: '#f43f5e' },
+            { label: 'Savings',  value: month.savings,      color: isPositive ? 'var(--accent-cyan-soft)' : '#f43f5e' },
+            { label: 'Rate',     value: month.savings_rate, color: '#fbbf24', isPercent: true },
+          ].map(({ label, value, color, isPercent }: any) => (
+            <div key={label}>
+              <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</p>
+              {isPercent
+                ? <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color, letterSpacing: '-0.03em' }}>{value}%</p>
+                : <NumberFlow value={value} format={{ style: 'currency', currency: 'IDR', notation: 'compact', maximumFractionDigits: 1 }} style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color, letterSpacing: '-0.03em' }} />
+              }
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 const container: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } } };
 const fadeUp: Variants    = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
 
 export default function AnalyticsPage() {
-  const [data, setData]       = useState<AdvancedAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]           = useState<AdvancedAnalytics | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null); // month_key
 
   useEffect(() => { api.get('/analytics/advanced').then((r) => setData(r.data)).finally(() => setLoading(false)); }, []);
 
   if (loading) return <AnalyticsSkeleton />;
   if (!data)   return <div className="page-root"><p style={{ color: '#fb7185' }}>Failed to load analytics.</p></div>;
 
-  const savingsData = data.monthly_data.map((m) => ({ month: m.month.split(' ')[0], savings: m.savings, rate: m.savings_rate }));
-  const radarData   = (data.by_day_of_week ?? []).map((d) => ({ day: DAY_SHORT[d.day] ?? d.day, pengeluaran: d.avg }));
+  // Filtered monthly data — if a month is selected, show only that one in charts
+  const chartData = selectedMonth
+    ? data.monthly_data.filter((m) => m.month_key === selectedMonth)
+    : data.monthly_data;
+
+  const savingsData    = chartData.map((m) => ({ month: m.month.split(' ')[0], savings: m.savings, rate: m.savings_rate }));
+  const radarData      = (data.by_day_of_week ?? []).map((d) => ({ day: DAY_SHORT[d.day] ?? d.day, pengeluaran: d.avg }));
+  const selectedMonthObj = selectedMonth ? data.monthly_data.find((m) => m.month_key === selectedMonth) ?? null : null;
 
   const kpis = [
     { label: 'Avg Monthly Income',   value: data.avg_monthly_income,  format: 'currency', gradient: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.2)',  color: '#34d399', icon: '📈', raw: false },
     { label: 'Avg Monthly Expenses', value: data.avg_monthly_expense, format: 'currency', gradient: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.2)', color: '#fb7185', icon: '📉', raw: false },
-    { label: 'Avg Savings Rate',     value: data.avg_savings_rate,    format: 'percent',  gradient: 'rgba(124,111,247,0.12)', border: 'rgba(124,111,247,0.2)', color: 'var(--accent-violet-soft)', icon: '💰', raw: true },
+    { label: 'Avg Savings Rate',     value: data.avg_savings_rate,    format: 'percent',  gradient: 'rgba(14,165,233,0.12)',  border: 'rgba(14,165,233,0.2)',  color: 'var(--accent-cyan-soft)', icon: '💰', raw: true },
   ];
 
   return (
@@ -114,11 +246,39 @@ export default function AnalyticsPage() {
         ))}
       </motion.div>
 
+      {/* ── Month filter carousel ── */}
+      <motion.div variants={fadeUp}>
+        <div style={{ marginBottom: 6 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Filter by Month</p>
+          <MonthFilterCarousel
+            months={data.monthly_data}
+            selected={selectedMonth}
+            onSelect={setSelectedMonth}
+          />
+        </div>
+      </motion.div>
+
+      {/* ── Month spotlight (shown when a month is selected) ── */}
+      {selectedMonthObj && (
+        <motion.div
+          key={selectedMonth}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.25 }}
+        >
+          <MonthSpotlight month={selectedMonthObj} />
+        </motion.div>
+      )}
+
       {/* Income vs Expenses — full width */}
       <motion.div variants={fadeUp}>
-        <ChartCard title="Income vs Expenses" subtitle="Monthly comparison over 12 months">
+        <ChartCard
+          title={selectedMonthObj ? `Income vs Expenses — ${selectedMonthObj.month}` : 'Income vs Expenses'}
+          subtitle={selectedMonthObj ? 'Single month detail' : 'Monthly comparison over 12 months'}
+        >
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={data.monthly_data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
               <defs>
                 <linearGradient id="aI" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.22}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient>
                 <linearGradient id="aE" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#fb7185" stopOpacity={0.22}/><stop offset="95%" stopColor="#fb7185" stopOpacity={0}/></linearGradient>
@@ -134,16 +294,16 @@ export default function AnalyticsPage() {
         </ChartCard>
       </motion.div>
 
-      {/* Savings Rate + Net Worth side by side */}
+      {/* Savings Rate + Net Worth */}
       <motion.div variants={fadeUp} className="content-grid-2">
-        <ChartCard title="Savings Rate" subtitle="Monthly %">
+        <ChartCard title="Savings Rate" subtitle={selectedMonthObj ? selectedMonthObj.month : 'Monthly %'}>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={savingsData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="2 4" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="rate" name="rate" fill="#7c6ff7" opacity={0.85} radius={[5, 5, 0, 0]} animationDuration={900} />
+              <Bar dataKey="rate" name="rate" fill="#0ea5e9" opacity={0.85} radius={[5, 5, 0, 0]} animationDuration={900} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -160,7 +320,7 @@ export default function AnalyticsPage() {
         </ChartCard>
       </motion.div>
 
-      {/* Top categories + Day of week side by side */}
+      {/* Top categories + Day of week */}
       <motion.div variants={fadeUp} className="content-grid-2">
         {data.top_categories.length > 0 && (
           <div className="card" style={{ padding: '22px 22px 24px' }}>
@@ -171,7 +331,7 @@ export default function AnalyticsPage() {
                 const pct = Math.round((tc.total / max) * 100);
                 return (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: (tc.category?.color ?? '#7c6ff7') + '20', border: `1px solid ${(tc.category?.color ?? '#7c6ff7')}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: (tc.category?.color ?? '#0ea5e9') + '20', border: `1px solid ${(tc.category?.color ?? '#0ea5e9')}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
                       {tc.category?.icon ?? '📂'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -180,7 +340,7 @@ export default function AnalyticsPage() {
                         <p style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', flexShrink: 0, marginLeft: 8 }}>{formatRupiah(tc.total)}</p>
                       </div>
                       <div style={{ height: 5, background: 'var(--bg-overlay)', borderRadius: 99, overflow: 'hidden' }}>
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.08 }} style={{ height: '100%', borderRadius: 99, background: tc.category?.color ?? 'var(--accent-violet)' }} />
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.08 }} style={{ height: '100%', borderRadius: 99, background: tc.category?.color ?? 'var(--accent-cyan)' }} />
                       </div>
                     </div>
                   </div>

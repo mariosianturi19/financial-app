@@ -1,0 +1,44 @@
+{
+  "name": "FinApp — Personal Finance",
+  "short_name": "FinApp",
+  "description": "Personal finance management app. Track income, expenses, budgets, and more.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#7c6ff7",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View your financial dashboard"
+    },
+    {
+      "name": "Add Transaction",
+      "url": "/transactions",
+      "description": "Add a new transaction"
+    },
+    {
+      "name": "Budgets",
+      "url": "/budgets",
+      "description": "View and manage budgets"
+    }
+  ]
+}

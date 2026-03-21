@@ -109,7 +109,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
           border: '2.5px solid var(--border-default)',
-          borderTopColor: 'var(--accent-violet)',
+          borderTopColor: 'var(--accent-cyan)',
           animation: 'spin 0.7s linear infinite',
         }} />
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Loading...</p>
@@ -131,6 +131,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         position="top-right"
         theme="dark"
         toastOptions={{
+          duration: 2000,
           style: {
             background: 'var(--bg-elevated)',
             color: 'var(--text-primary)',
@@ -144,8 +145,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
 
       {/* Ambient background orbs */}
-      <div className="orb orb-violet" />
-      <div className="orb orb-emerald" />
+      <div className="orb orb-cyan" />
+      <div className="orb orb-teal" />
 
       {/* App shell */}
       <div style={{
@@ -162,15 +163,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Mobile topbar */}
           <div className="mobile-topbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {PageIcon && <PageIcon size={17} style={{ color: 'var(--accent-violet)' }} />}
+              {PageIcon && <PageIcon size={17} style={{ color: 'var(--accent-cyan)' }} />}
               <span style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                 {pageLabel}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--grad-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white' }}>
-                💎
-              </div>
+              <img src="/logo-finapp.png" alt="FinApp Logo" width={32} height={32} style={{ borderRadius: 10, flexShrink: 0 }} />
             </div>
           </div>
 

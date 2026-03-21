@@ -48,7 +48,7 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
           position: 'absolute',
           inset: -1,
           borderRadius: 24,
-          background: 'linear-gradient(135deg, rgba(124,111,247,0.08), transparent)',
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.08), transparent)',
           pointerEvents: 'none',
         }} />
       </motion.div>

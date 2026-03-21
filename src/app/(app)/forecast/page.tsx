@@ -161,7 +161,7 @@ export default function ForecastPage() {
                   {[
                     { label: 'Income',   v: proj.projected_income,  c: '#34d399' },
                     { label: 'Expenses', v: proj.projected_expense, c: '#fb7185' },
-                    { label: 'Savings',  v: proj.projected_savings, c: proj.projected_savings >= 0 ? 'var(--accent-violet-soft)' : '#fb7185' },
+                    { label: 'Savings',  v: proj.projected_savings, c: proj.projected_savings >= 0 ? 'var(--accent-cyan-soft)' : '#f43f5e' },
                   ].map(({ label, v, c }) => (
                     <div key={label}>
                       <p style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontWeight: 700 }}>{label}</p>

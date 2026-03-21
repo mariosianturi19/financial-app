@@ -53,19 +53,12 @@ export default function Sidebar() {
 
   return (
     <aside style={{
-      width: 'var(--sidebar-width)',
-      minHeight: '100vh',
-      background: 'rgba(10,10,18,0.96)',
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
+      width: 'var(--sidebar-width)', minHeight: '100vh',
+      background: 'rgba(6,11,22,0.97)',
+      backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
       borderRight: '1px solid var(--border-subtle)',
-      display: 'flex',
-      flexDirection: 'column',
-      flexShrink: 0,
-      position: 'sticky',
-      top: 0,
-      height: '100vh',
-      overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', flexShrink: 0,
+      position: 'sticky', top: 0, height: '100vh', overflow: 'hidden',
     }}>
 
       {/* Logo */}
@@ -78,18 +71,11 @@ export default function Sidebar() {
         {/* Glow behind logo */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 80,
-          background: 'radial-gradient(ellipse at 30% 0%, rgba(124,111,247,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at 30% 0%, rgba(14,165,233,0.18) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 13,
-            background: 'var(--grad-violet)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, boxShadow: '0 4px 24px rgba(124,111,247,0.5)', flexShrink: 0,
-          }}>
-            💎
-          </div>
+            <img src="/logo-finapp.png" alt="FinApp Logo" width={42} height={42} style={{ borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.3)', flexShrink: 0 }} />
           <div>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
               FinApp
@@ -118,12 +104,12 @@ export default function Sidebar() {
                   padding: '9px 12px', borderRadius: 11, textDecoration: 'none',
                   marginBottom: 2, position: 'relative',
                   background: active
-                    ? 'linear-gradient(135deg, rgba(124,111,247,0.18) 0%, rgba(167,139,250,0.08) 100%)'
+                    ? 'linear-gradient(135deg, rgba(14,165,233,0.16) 0%, rgba(20,184,166,0.08) 100%)'
                     : 'transparent',
-                  color: active ? 'var(--accent-violet-soft)' : 'var(--text-secondary)',
-                  border: active ? '1px solid rgba(124,111,247,0.2)' : '1px solid transparent',
+                  color: active ? 'var(--accent-cyan-soft)' : 'var(--text-secondary)',
+                  border: active ? '1px solid rgba(14,165,233,0.2)' : '1px solid transparent',
                   transition: 'all 0.15s',
-                  boxShadow: active ? '0 2px 12px rgba(124,111,247,0.12)' : 'none',
+                  boxShadow: active ? '0 2px 12px rgba(14,165,233,0.10)' : 'none',
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
@@ -141,15 +127,15 @@ export default function Sidebar() {
                   {active && (
                     <div style={{
                       position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-                      width: 3, height: 24, background: 'var(--accent-violet)',
+                      width: 3, height: 24, background: 'var(--accent-cyan)',
                       borderRadius: '0 4px 4px 0',
-                      boxShadow: '0 0 8px var(--accent-violet-glow)',
+                      boxShadow: '0 0 8px var(--accent-cyan-glow)',
                     }} />
                   )}
                   <div style={{
                     width: 30, height: 30, borderRadius: 8, flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: active ? 'rgba(124,111,247,0.18)' : 'transparent',
+                    background: active ? 'rgba(14,165,233,0.16)' : 'transparent',
                     transition: 'all 0.15s',
                   }}>
                     <Icon size={15} strokeWidth={active ? 2.2 : 1.8} />
@@ -179,10 +165,10 @@ export default function Sidebar() {
         }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-            background: 'var(--grad-violet)',
+            background: 'var(--grad-finapp)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 12, fontWeight: 700, color: 'white', letterSpacing: '-0.01em',
-            boxShadow: '0 2px 10px rgba(124,111,247,0.4)',
+            boxShadow: '0 2px 10px rgba(14,165,233,0.4)',
           }}>
             {initials}
           </div>
