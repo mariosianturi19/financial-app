@@ -159,7 +159,7 @@ function TxRow({ tx, onEdit, onDelete }: { tx: Transaction; onEdit: () => void; 
 }
 
 export default function TransactionsPage() {
-  const { wallets, walletsLoaded, fetchWallets, categories, categoriesLoaded, fetchCategories } = useAppStore();
+  const { wallets, walletsLoaded, fetchWallets, refetchWallets, categories, categoriesLoaded, fetchCategories } = useAppStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [meta, setMeta]               = useState<PaginationMeta | null>(null);
   const [loading, setLoading]         = useState(true);
@@ -206,7 +206,7 @@ export default function TransactionsPage() {
       setTransactions([res.data, ...transactions]);
       setShowAdd(false); setAddForm(makeEmptyForm());
       toast.success('Transaction saved!', { style: { borderLeft: '4px solid var(--accent-emerald)' } });
-      fetchWallets();
+      refetchWallets(); // force-refresh wallet balances in store
     } catch { toast.error('Failed to save.'); } finally { setSaving(false); }
   };
 
@@ -217,7 +217,7 @@ export default function TransactionsPage() {
       setTransactions(transactions.map((t) => t.id === editTx.id ? res.data : t));
       setEditTx(null);
       toast.success('Transaction updated!', { style: { borderLeft: '4px solid var(--accent-cyan)' } });
-      fetchWallets();
+      refetchWallets(); // force-refresh wallet balances in store
     } catch { toast.error('Failed to save.'); } finally { setEditSaving(false); }
   };
 
@@ -230,7 +230,7 @@ export default function TransactionsPage() {
       setEditTx(null);
       setDeleteTarget(null);
       toast.error('Transaction deleted.', { style: { borderLeft: '4px solid var(--accent-rose)' } });
-      fetchWallets();
+      refetchWallets(); // force-refresh wallet balances in store
     } catch { toast.error('Failed to delete.'); } finally { setDeleting(false); }
   };
 

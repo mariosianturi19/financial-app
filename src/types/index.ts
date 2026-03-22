@@ -11,9 +11,21 @@ export interface Category {
   is_default: boolean; // ← baru: kategori default tidak bisa dihapus
 }
 
+export type WalletType = 'bank' | 'ewallet';
 export interface Wallet {
   id: number; user_id: number; name: string; balance: number;
   currency: string; icon?: string; color: string;
+  wallet_type: WalletType;
+  initial_balance: number;
+}
+
+export interface Transfer {
+  id: number; user_id: number;
+  from_wallet_id: number; to_wallet_id: number;
+  amount: number; admin_fee: number; total_deducted: number;
+  notes?: string; date: string;
+  from_wallet?: Wallet; to_wallet?: Wallet;
+  created_at: string;
 }
 
 export interface Transaction {

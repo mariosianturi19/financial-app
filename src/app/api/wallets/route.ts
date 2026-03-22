@@ -26,21 +26,25 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
 
     const body = await req.json();
-    const { name, currency = 'IDR', icon, color = '#10b981' } = body;
+    const { name, currency = 'IDR', icon, color = '#10b981', wallet_type = 'bank' } = body;
     const initialBalance = Number(body.balance ?? 0);
 
     if (!name) return NextResponse.json({ message: 'Nama wajib diisi.' }, { status: 422 });
+    if (!['bank', 'ewallet'].includes(wallet_type)) {
+      return NextResponse.json({ message: 'wallet_type harus bank atau ewallet.' }, { status: 422 });
+    }
 
     const { data, error } = await supabase
       .from('wallets')
       .insert({
         user_id: user.id,
         name,
-        balance: initialBalance,         // computed balance (starts equal to initial)
-        initial_balance: initialBalance, // immutable basis for recalculate
+        balance: initialBalance,
+        initial_balance: initialBalance,
         currency,
         icon,
         color,
+        wallet_type,
       })
       .select()
       .single();

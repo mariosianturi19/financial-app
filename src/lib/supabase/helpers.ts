@@ -1,12 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Hitung ulang saldo wallet berdasarkan initial_balance + semua transaksi.
- *
- * Formula: balance = initial_balance + SUM(income) - SUM(expense)
- *
- * Ini memastikan saldo awal yang diinputkan user saat buat wallet
- * selalu menjadi basis perhitungan, bukan nol.
+ * Hitung ulang saldo wallet:
+ * balance = initial_balance
+ *         + SUM(income transactions)
+ *         - SUM(expense transactions)
+ *         + SUM(amount dari transfers masuk ke wallet ini)
+ *         - SUM(total_deducted dari transfers keluar dari wallet ini)
  */
 export async function recalculateWalletBalance(
   supabase: SupabaseClient,
@@ -35,7 +35,21 @@ export async function recalculateWalletBalance(
     0
   );
 
-  const balance = initialBalance + txDelta;
+  // Jumlahkan transfer masuk (amount diterima)
+  const { data: transfersIn } = await supabase
+    .from('transfers')
+    .select('amount')
+    .eq('to_wallet_id', walletId);
+  const inDelta = (transfersIn ?? []).reduce((s: number, t: { amount: string | number }) => s + Number(t.amount), 0);
+
+  // Jumlahkan transfer keluar (total_deducted = amount + admin_fee)
+  const { data: transfersOut } = await supabase
+    .from('transfers')
+    .select('total_deducted')
+    .eq('from_wallet_id', walletId);
+  const outDelta = (transfersOut ?? []).reduce((s: number, t: { total_deducted: string | number }) => s + Number(t.total_deducted), 0);
+
+  const balance = initialBalance + txDelta + inDelta - outDelta;
 
   await supabase
     .from('wallets')
@@ -53,4 +67,13 @@ export async function getAuthUser(supabase: SupabaseClient) {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return null;
   return user;
+}
+
+/**
+ * Biaya admin transfer berdasarkan tipe wallet sumber dan tujuan
+ */
+export function getTransferAdminFee(fromType: string, toType: string): number {
+  if (fromType === 'bank'    && toType === 'ewallet') return 1000;
+  if (fromType === 'ewallet' && toType === 'bank')    return 2500;
+  return 0; // bank→bank atau ewallet→ewallet gratis
 }
