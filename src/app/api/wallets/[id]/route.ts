@@ -25,13 +25,35 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (!await getAuthUser(supabase)) return NextResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
 
     const body = await req.json();
-    const allowed = ['name', 'balance', 'currency', 'icon', 'color'];
+
+    // Fields yang boleh diedit user
+    const allowed = ['name', 'currency', 'icon', 'color'];
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     allowed.forEach(k => { if (body[k] !== undefined) updates[k] = body[k]; });
 
-    const { data, error } = await supabase.from('wallets').update(updates).eq('id', id).select().single();
+    // Jika user mengedit 'balance' (saldo awal baru), update initial_balance juga
+    // lalu recalculate balance aktual dari initial_balance + transaksi
+    const balanceEdited = body.balance !== undefined;
+    if (balanceEdited) {
+      updates.initial_balance = Number(body.balance);
+      // balance aktual akan dihitung ulang di bawah
+    }
+
+    const { data, error } = await supabase
+      .from('wallets')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
     if (error) return NextResponse.json({ message: 'Not found.' }, { status: 404 });
-    return NextResponse.json(data);
+
+    // Selalu recalculate setelah edit untuk menjaga konsistensi
+    await recalculateWalletBalance(supabase, Number(id));
+
+    // Kembalikan data wallet terbaru setelah recalculate
+    const { data: fresh } = await supabase.from('wallets').select('*').eq('id', id).single();
+    return NextResponse.json(fresh ?? data);
   } catch {
     return NextResponse.json({ message: 'Server error.' }, { status: 500 });
   }

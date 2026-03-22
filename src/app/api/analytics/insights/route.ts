@@ -23,11 +23,12 @@ export async function GET() {
     const { start: lastStart, end: lastEnd } = monthRange(curY, curM - 1);
 
     // Fetch transaksi bulan ini, bulan lalu, dan 3 bulan terakhir
-    const threeAgo = new Date(curY, curM - 2, 1).toISOString().split('T')[0];
+    // PENTING: mulai dari threeAgo agar emergency fund check dan last3Tx punya data lengkap
+    const threeAgo = new Date(curY, curM - 3, 1).toISOString().split('T')[0];
     const { data: allTx } = await supabase
       .from('transactions')
       .select('type, amount, date, category_id, category:categories(name)')
-      .gte('date', lastStart);
+      .gte('date', threeAgo);
 
     const curTx   = (allTx ?? []).filter(t => t.date >= curStart  && t.date <= curEnd);
     const lastTx  = (allTx ?? []).filter(t => t.date >= lastStart && t.date <= lastEnd);

@@ -1,22 +1,41 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Hitung ulang saldo wallet dari nol berdasarkan semua transaksi.
- * Sama persis dengan Wallet::recalculateBalance() di Laravel.
+ * Hitung ulang saldo wallet berdasarkan initial_balance + semua transaksi.
+ *
+ * Formula: balance = initial_balance + SUM(income) - SUM(expense)
+ *
+ * Ini memastikan saldo awal yang diinputkan user saat buat wallet
+ * selalu menjadi basis perhitungan, bukan nol.
  */
 export async function recalculateWalletBalance(
   supabase: SupabaseClient,
   walletId: number
 ): Promise<number> {
-  const { data } = await supabase
+  // Ambil initial_balance dari wallet
+  const { data: wallet } = await supabase
+    .from('wallets')
+    .select('initial_balance')
+    .eq('id', walletId)
+    .single();
+
+  const initialBalance = Number(wallet?.initial_balance ?? 0);
+
+  // Jumlahkan semua transaksi
+  const { data: txList } = await supabase
     .from('transactions')
     .select('type, amount')
     .eq('wallet_id', walletId);
 
-  const balance = (data ?? []).reduce((sum: number, tx: { type: string; amount: string | number }) => {
-    const amt = Number(tx.amount);
-    return sum + (tx.type === 'income' ? amt : -amt);
-  }, 0);
+  const txDelta = (txList ?? []).reduce(
+    (sum: number, tx: { type: string; amount: string | number }) => {
+      const amt = Number(tx.amount);
+      return sum + (tx.type === 'income' ? amt : -amt);
+    },
+    0
+  );
+
+  const balance = initialBalance + txDelta;
 
   await supabase
     .from('wallets')
