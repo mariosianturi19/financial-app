@@ -34,10 +34,14 @@ export async function POST(req: NextRequest) {
       new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
     // ── 1. Temukan user ───────────────────────────────────────────
+    const phoneStr = String(phone);
+    const phone62 = phoneStr.startsWith('0') ? '62' + phoneStr.slice(1) : phoneStr;
+    const phone0  = phoneStr.startsWith('62') ? '0' + phoneStr.slice(2) : phoneStr;
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('id')
-      .eq('phone_number', String(phone))
+      .or(`phone_number.eq.${phone62},phone_number.eq.${phone0}`)
       .single();
 
     if (!profile) {
