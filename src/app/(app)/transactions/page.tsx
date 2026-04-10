@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Filter, X, ChevronDown, ArrowUpRight, ArrowDownRight, SlidersHorizontal, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, X, ChevronDown, ArrowUpRight, ArrowDownRight, SlidersHorizontal, Edit2, Trash2, ArrowLeftRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
-import { Transaction } from '@/types';
+import { Transaction, Transfer } from '@/types';
 import { formatRupiah, formatDate, toInputDate } from '@/lib/utils';
 import { useAppStore } from '@/store/appStore';
 import Modal from '@/components/ui/Modal';
@@ -13,6 +13,11 @@ import TxForm, { TxFormData } from '@/components/ui/TxForm';
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal';
 import { toast } from 'sonner';
 import NumberFlow from '@number-flow/react';
+
+// Unified list item — either a transaction or a transfer
+type UnifiedItem =
+  | (Transaction & { _kind: 'transaction' })
+  | (Transfer    & { _kind: 'transfer' });
 
 const makeEmptyForm = (): TxFormData => ({
   wallet_id: '', category_id: '', type: 'expense',
@@ -39,17 +44,21 @@ function getDateLabel(dateStr: string): string {
   return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function groupByDate(txList: Transaction[]): { label: string; items: Transaction[]; dayTotal: number }[] {
-  const map = new Map<string, Transaction[]>();
-  for (const tx of txList) {
-    const key = tx.date.slice(0, 10);
+function groupByDate(items: UnifiedItem[]): { label: string; items: UnifiedItem[]; dayTotal: number }[] {
+  const map = new Map<string, UnifiedItem[]>();
+  for (const item of items) {
+    const key = item.date.slice(0, 10);
     if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(tx);
+    map.get(key)!.push(item);
   }
   return Array.from(map.entries()).map(([, items]) => ({
     label: getDateLabel(items[0].date),
     items,
-    dayTotal: items.reduce((s, tx) => tx.type === 'income' ? s + Number(tx.amount) : s - Number(tx.amount), 0),
+    // Transfers netted as 0 in day total (they move money, not create/destroy it)
+    dayTotal: items.reduce((s, item) => {
+      if (item._kind === 'transfer') return s;
+      return item.type === 'income' ? s + Number(item.amount) : s - Number(item.amount);
+    }, 0),
   }));
 }
 
@@ -158,9 +167,73 @@ function TxRow({ tx, onEdit, onDelete }: { tx: Transaction; onEdit: () => void; 
   );
 }
 
+function TransferRow({ tf }: { tf: Transfer }) {
+  const accentColor = '#a78bfa'; // purple
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -12 }}
+      className="tx-row"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 11,
+        padding: '11px 14px', margin: '0 6px', borderRadius: 13,
+        opacity: 0.92,
+      }}
+    >
+      {/* Icon */}
+      <div style={{
+        width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+        background: accentColor + '1e', border: `1px solid ${accentColor}33`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <ArrowLeftRight size={18} style={{ color: accentColor }} />
+      </div>
+
+      {/* Middle */}
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        <p style={{
+          fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3,
+        }}>
+          {tf.notes || `Transfer`}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatDate(tf.date)}</span>
+          <span style={{
+            fontSize: 10.5, color: accentColor,
+            background: accentColor + '18', padding: '1px 7px',
+            borderRadius: 99, border: `1px solid ${accentColor}30`,
+          }}>
+            {tf.from_wallet?.name ?? '?'} → {tf.to_wallet?.name ?? '?'}
+          </span>
+          {tf.admin_fee > 0 && (
+            <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>
+              +{formatRupiah(tf.admin_fee)} fee
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Right: amount */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <ArrowLeftRight size={13} style={{ color: accentColor }} />
+        <span style={{
+          fontFamily: 'var(--font-display)', fontSize: 13.5, fontWeight: 700,
+          letterSpacing: '-0.01em', color: accentColor,
+        }}>
+          {formatRupiah(tf.amount)}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function TransactionsPage() {
   const { wallets, walletsLoaded, fetchWallets, refetchWallets, categories, categoriesLoaded, fetchCategories } = useAppStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transfers,    setTransfers]    = useState<Transfer[]>([]);
   const [meta, setMeta]               = useState<PaginationMeta | null>(null);
   const [loading, setLoading]         = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -172,7 +245,7 @@ export default function TransactionsPage() {
   const [editOriginalAmount, setEditOriginalAmount] = useState(0);
   const [editSaving, setEditSaving]   = useState(false);
   const [search, setSearch]           = useState('');
-  const [filterType, setFilterType]   = useState<'all' | 'income' | 'expense'>('all');
+  const [filterType, setFilterType]   = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [filterWallet, setFilterWallet] = useState('');
   const [showFilter, setShowFilter]   = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
@@ -185,12 +258,16 @@ export default function TransactionsPage() {
 
   const fetchTx = useCallback(async (page = 1, append = false) => {
     const params = new URLSearchParams({ page: String(page), per_page: '30' });
-    if (filterType !== 'all') params.set('type', filterType);
+    if (filterType !== 'all' && filterType !== 'transfer') params.set('type', filterType);
     if (filterWallet) params.set('wallet_id', filterWallet);
     try {
-      const res = await api.get(`/transactions?${params}`);
-      setTransactions((prev) => append ? [...prev, ...res.data.data] : res.data.data);
-      setMeta(res.data);
+      const [txRes, tfRes] = await Promise.all([
+        api.get(`/transactions?${params}`),
+        api.get('/transfers?limit=200'),
+      ]);
+      setTransactions((prev) => append ? [...prev, ...txRes.data.data] : txRes.data.data);
+      setTransfers(tfRes.data ?? []);
+      setMeta(txRes.data);
     } catch { toast.error('Failed to load transactions.'); }
   }, [filterType, filterWallet]);
 
@@ -240,17 +317,45 @@ export default function TransactionsPage() {
     setEditForm({ wallet_id: String(tx.wallet_id), category_id: String(tx.category_id), type: tx.type, amount: String(tx.amount), description: tx.description ?? '', date: toInputDate(tx.date) });
   };
 
-  const filtered = useMemo(() =>
-    search.trim()
-      ? transactions.filter((t) =>
-          (t.description ?? '').toLowerCase().includes(search.toLowerCase()) ||
-          (t.category?.name ?? '').toLowerCase().includes(search.toLowerCase()))
-      : transactions
-  , [transactions, search]);
+  const filtered = useMemo((): UnifiedItem[] => {
+    // Merge transactions and transfers into unified list
+    const txItems = transactions.map((t) => ({ ...t, _kind: 'transaction' as const }));
+    const tfItems = (filterType === 'income' || filterType === 'expense')
+      ? [] // hide transfers when filtering by income/expense
+      : transfers.map((tf) => ({ ...tf, _kind: 'transfer' as const }));
+
+    const merged: UnifiedItem[] = [...txItems, ...tfItems];
+
+    // Apply search filter
+    const searchLower = search.toLowerCase().trim();
+    const searched = searchLower
+      ? merged.filter((item) => {
+          if (item._kind === 'transfer') {
+            return (
+              (item.notes ?? '').toLowerCase().includes(searchLower) ||
+              (item.from_wallet?.name ?? '').toLowerCase().includes(searchLower) ||
+              (item.to_wallet?.name   ?? '').toLowerCase().includes(searchLower)
+            );
+          }
+          return (
+            (item.description ?? '').toLowerCase().includes(searchLower) ||
+            (item.category?.name    ?? '').toLowerCase().includes(searchLower)
+          );
+        })
+      : merged;
+
+    // Apply transfer-only filter
+    const result = filterType === 'transfer'
+      ? searched.filter((item) => item._kind === 'transfer')
+      : searched;
+
+    // Sort by date desc
+    return result.sort((a, b) => b.date.localeCompare(a.date));
+  }, [transactions, transfers, search, filterType]);
 
   const groups       = useMemo(() => groupByDate(filtered), [filtered]);
-  const totalIncome  = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  const totalExpense = filtered.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  const totalIncome  = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const totalExpense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const hasFilter    = filterType !== 'all' || !!filterWallet;
 
   return (
@@ -312,9 +417,10 @@ export default function TransactionsPage() {
               <div>
                 <label className="input-label">Type</label>
                 <select className="input-base" value={filterType} onChange={(e) => setFilterType(e.target.value as any)}>
-                  <option value="all">All types</option>
+                                  <option value="all">All types</option>
                   <option value="income">Income only</option>
                   <option value="expense">Expenses only</option>
+                  <option value="transfer">Transfers only</option>
                 </select>
               </div>
               <div>
@@ -352,8 +458,12 @@ export default function TransactionsPage() {
                     {group.dayTotal >= 0 ? '+' : ''}{formatRupiah(Math.abs(group.dayTotal))}
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 6 }}>
-                  {group.items.map((tx) => <TxRow key={tx.id} tx={tx} onEdit={() => openEdit(tx)} onDelete={() => setDeleteTarget(tx)} />)}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 6 }}>
+                  {group.items.map((item) =>
+                    item._kind === 'transfer'
+                      ? <TransferRow key={`tf-${item.id}`} tf={item} />
+                      : <TxRow key={`tx-${item.id}`} tx={item} onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                  )}
                 </div>
                 <div style={{ height: 1, background: 'var(--border-subtle)', margin: '6px 18px 4px' }} />
               </div>

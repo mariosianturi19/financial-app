@@ -24,9 +24,15 @@ const sections = [
   {
     label: 'Intelligence',
     items: [
-      { href: '/analytics', label: 'Analytics',     Icon: TrendingUp },
-      { href: '/forecast',  label: 'Forecasting',   Icon: Zap        },
+      { href: '/analytics', label: 'Analytics',      Icon: TrendingUp },
+      { href: '/forecast',  label: 'Forecasting',    Icon: Zap        },
       { href: '/insights',  label: 'Smart Insights', Icon: Lightbulb },
+    ],
+  },
+  {
+    label: 'Other',
+    items: [
+      { href: '/settings', label: 'Settings & WA Bot', Icon: Settings },
     ],
   },
 ];

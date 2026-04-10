@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp,
-  MoreHorizontal, Wallet, Tag, Zap, Lightbulb, X,
+  MoreHorizontal, Wallet, Tag, Zap, Lightbulb, X, Settings,
 } from 'lucide-react';
 
 const PRIMARY_NAV = [
@@ -16,10 +16,11 @@ const PRIMARY_NAV = [
 ];
 
 const MORE_NAV = [
-  { href: '/analytics',  Icon: TrendingUp,label: 'Analytics',    color: '#34d399' },
-  { href: '/categories', Icon: Tag,       label: 'Categories',   color: '#fbbf24' },
-  { href: '/forecast',   Icon: Zap,       label: 'Forecasting',  color: '#0ea5e9' },
-  { href: '/insights',   Icon: Lightbulb, label: 'Smart Insights', color: '#fb7185' },
+  { href: '/analytics',  Icon: TrendingUp, label: 'Analytics',      color: '#34d399' },
+  { href: '/categories', Icon: Tag,        label: 'Categories',     color: '#fbbf24' },
+  { href: '/forecast',   Icon: Zap,        label: 'Forecasting',    color: '#0ea5e9' },
+  { href: '/insights',   Icon: Lightbulb,  label: 'Smart Insights', color: '#fb7185' },
+  { href: '/settings',   Icon: Settings,   label: 'Settings',       color: '#a78bfa' },
 ];
 
 export default function BottomNav() {
