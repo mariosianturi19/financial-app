@@ -150,7 +150,7 @@ export default function SettingsPage() {
                     style={{ padding: '6px 12px', borderRadius: 9, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
                     <Copy size={12} /> Salin
                   </button>
-                  <a href={`https://wa.me/${BOT_NUMBER.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                  <a href={`https://api.whatsapp.com/send?phone=${BOT_NUMBER.replace(/\D/g, '').replace(/^0/, '62')}`} target="_blank" rel="noreferrer"
                     style={{ padding: '6px 12px', borderRadius: 9, background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25d366', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textDecoration: 'none', fontWeight: 600 }}>
                     <ExternalLink size={12} /> Chat
                   </a>
